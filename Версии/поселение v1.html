@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Поселение</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b0e13;
+    font-family:system-ui,'Segoe UI',Arial,sans-serif;color:#e8eef7;user-select:none}
+  canvas{display:block;position:absolute;inset:0;cursor:crosshair}
+
+  #resbar{position:absolute;top:8px;left:8px;display:flex;gap:5px;flex-wrap:wrap;pointer-events:none;max-width:70vw}
+  .res{background:rgba(16,21,30,.88);border:1px solid #2f3a4b;border-radius:6px;
+    padding:4px 9px;font-size:12.5px;display:flex;gap:6px;align-items:center;backdrop-filter:blur(4px)}
+  .res b{font-weight:700;font-variant-numeric:tabular-nums}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+  #build{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+    display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:97vw}
+  .btn{background:rgba(16,21,30,.92);border:1px solid #2f3a4b;border-radius:7px;
+    padding:6px 11px;font-size:12px;cursor:pointer;min-width:82px;text-align:center;
+    transition:.12s;line-height:1.25;backdrop-filter:blur(4px)}
+  .btn:hover{background:rgba(40,58,84,.95);border-color:#58789e}
+  .btn.active{background:#2e5c8f;border-color:#6fa4e2;box-shadow:0 0 12px rgba(80,150,230,.5)}
+  .btn.dis{opacity:.34;cursor:not-allowed}
+  .btn.dis:hover{background:rgba(16,21,30,.92);border-color:#2f3a4b}
+  .btn .c{font-size:10px;color:#8fa6c0;margin-top:2px}
+
+  #techpanel{position:absolute;top:8px;right:8px;width:310px;max-height:82vh;overflow-y:auto;
+    background:rgba(11,15,22,.96);border:1px solid #2f3a4b;border-radius:9px;padding:10px;
+    display:none;backdrop-filter:blur(6px)}
+  #techpanel.open{display:block}
+  #techpanel h3{margin:0 0 8px;font-size:14px;letter-spacing:.5px;color:#9fc4ee;font-weight:600}
+  .tech{border:1px solid #2c3747;border-radius:7px;padding:7px 9px;margin-bottom:6px;
+    cursor:pointer;background:#141c28;transition:.12s}
+  .tech:hover{background:#1c2839;border-color:#456080}
+  .tech b{font-size:12.5px}
+  .tech .td{font-size:11px;color:#8fa6c0;margin:2px 0 3px}
+  .tech .tc{font-size:11px;color:#d8b45e}
+  .tech.done{opacity:.55;border-color:#3a6b3a;background:#132018;cursor:default}
+  .tech.done .tc{color:#7fc27f}
+  .tech.locked{opacity:.32;cursor:not-allowed}
+  .tech.locked:hover{background:#141c28;border-color:#2c3747}
+
+  #hint{position:absolute;left:10px;bottom:12px;font-size:11.5px;color:#6c8098;
+    pointer-events:none;max-width:30vw;line-height:1.5}
+  #toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:rgba(10,14,20,.93);border:1px solid #3a4a5e;border-radius:8px;
+    padding:9px 20px;font-size:14px;opacity:0;transition:opacity .35s;pointer-events:none}
+  #info{position:absolute;left:8px;top:52px;background:rgba(16,21,30,.9);
+    border:1px solid #2f3a4b;border-radius:7px;padding:7px 11px;font-size:12px;
+    display:none;line-height:1.5;max-width:230px}
+  #info.open{display:block}
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-thumb{background:#2c3747;border-radius:4px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="resbar"></div>
+<div id="info"></div>
+<div id="build"></div>
+<div id="techpanel"></div>
+<div id="hint">WASD / перетаскивание — камера &nbsp;•&nbsp; колесо — зум &nbsp;•&nbsp; T — технологии &nbsp;•&nbsp; Esc — отмена</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================
+   БАЗОВЫЕ УТИЛИТЫ
+   ========================================================= */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0;
+function resize(){ W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+addEventListener('resize', resize); resize();
+
+const TS = 32, MW = 90, MH = 70;
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+
+/* ---------- шум ---------- */
+function hash(x,y,s){
+  let n = Math.imul(x|0, 374761393) + Math.imul(y|0, 668265263) + Math.imul(s|0, 1442695041);
+  n = Math.imul(n ^ (n>>>13), 1274126177);
+  return ((n ^ (n>>>16)) >>> 0) / 4294967295;
+}
+function vnoise(x,y,s){
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = x - xi, yf = y - yi;
+  const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
+  const a = hash(xi,yi,s), b = hash(xi+1,yi,s), c = hash(xi,yi+1,s), d = hash(xi+1,yi+1,s);
+  return (a*(1-u)+b*u)*(1-v) + (c*(1-u)+d*u)*v;
+}
+function fbm(x,y,s,oct=4){
+  let v=0, a=.5, f=1;
+  for(let i=0;i<oct;i++){ v += a*vnoise(x*f, y*f, s+i*131); f*=2; a*=.5; }
+  return v;
+}
+
+/* =========================================================
+   ГЕНЕРАЦИЯ МИРА
+   ========================================================= */
+let terrain = [], nodes = [];
+const DEPOSITS = {stoneD:'stone', coalD:'coal', ironD:'iron', goldD:'gold'};
+const isDeposit = t => t in DEPOSITS;
+
+function genWorld(){
+  terrain = []; nodes = [];
+  const seed = Math.floor(Math.random()*100000);
+
+  for(let y=0;y<MH;y++){
+    terrain[y] = []; nodes[y] = [];
+    for(let x=0;x<MW;x++){
+      const e = fbm(x*0.05, y*0.05, seed, 4);
+      const m = fbm(x*0.075+40, y*0.075+40, seed+77, 3);
+      let t = 'grass';
+      if(e < 0.375) t = 'water';
+      else if(e < 0.415) t = 'sand';
+      terrain[y][x] = { t, v: hash(x,y,seed+3) };
+      nodes[y][x] = null;
+
+      if(t === 'grass'){
+        const r = hash(x,y,seed+9);
+        if(e > 0.63 && r > 0.62){
+          nodes[y][x] = { type:'stoneD', tx:x, ty:y };
+        } else if(m > 0.555 && r > 0.44){
+          nodes[y][x] = { type:'tree', tx:x, ty:y, amount:3 };
+        } else if(r > 0.965){
+          nodes[y][x] = { type:'rock', tx:x, ty:y, amount:2 };
+        }
+      }
+    }
+  }
+
+  // рудные жилы
+  veins('coalD', 16, seed+201);
+  veins('ironD', 11, seed+307);
+  veins('goldD', 6,  seed+409);
+  return seed;
+}
+
+function veins(type, count, seed){
+  for(let i=0;i<count;i++){
+    const bx = 6 + Math.floor(hash(i,1,seed) * (MW-12));
+    const by = 6 + Math.floor(hash(1,i,seed+5) * (MH-12));
+    const r  = 1 + Math.floor(hash(i,i,seed+9) * 3);
+    for(let y=by-r;y<=by+r;y++){
+      for(let x=bx-r;x<=bx+r;x++){
+        if(x<2||y<2||x>=MW-2||y>=MH-2) continue;
+        if(terrain[y][x].t !== 'grass') continue;
+        const n = nodes[y][x];
+        if(n && isDeposit(n.type)) continue;
+        if(Math.hypot(x-bx, y-by) <= r && hash(x,y,seed+17) > 0.28)
+          nodes[y][x] = { type, tx:x, ty:y };
+      }
+    }
+  }
+}
+
+/* =========================================================
+   ОПРЕДЕЛЕНИЯ ЗДАНИЙ / ТЕХНОЛОГИЙ
+   ========================================================= */
+const BUILDINGS = {
+  house:  {name:'Дом',    cost:{wood:20},           color:'#c8894a', desc:'+4 населения'},
+  storage:{name:'Склад',  cost:{wood:30,stone:10},  color:'#8d95a3', desc:'+150 к лимиту'},
+  mine:   {name:'Шахта',  cost:{wood:40,stone:30},  color:'#5d5f78', workers:3, onDeposit:true, tech:'mining',        desc:'Добыча из залежей'},
+  farm:   {name:'Ферма',  cost:{wood:30},           color:'#c2b23f', workers:3, tech:'farming',                       desc:'Производит еду'},
+  grove:  {name:'Роща',   cost:{wood:25,stone:10},  color:'#3f8a45', workers:2, tech:'forestry',                      desc:'Производит дерево'},
+  drill:  {name:'Буровая',cost:{iron:30,stone:40},  color:'#8a4a9a', onDeposit:true, auto:true, tech:'mechanization', desc:'Автоматическая добыча'},
+};
+const COSTS = {
+  house:{wood:20}, storage:{wood:30,stone:10}, road:{stone:2},
+  mine:{wood:40,stone:30}, farm:{wood:30}, grove:{wood:25,stone:10},
+  drill:{iron:30,stone:40}, robot:{iron:20,gold:5}
+};
+const REQS = { mine:'mining', farm:'farming', grove:'forestry', drill:'mechanization', robot:'robotics' };
+
+const TECHS = [
+  { id:'mining',        name:'Горное дело',   cost:{wood:30, stone:30},                 desc:'Открывает Шахту — добыча угля, железа, золота и камня из залежей' },
+  { id:'farming',       name:'Земледелие',    cost:{wood:40},                            desc:'Открывает Ферму — стабильное производство еды' },
+  { id:'forestry',      name:'Лесоводство',   cost:{wood:40, stone:20},                  desc:'Открывает Рощу — возобновляемое производство дерева' },
+  { id:'mechanization', name:'Механизация',   cost:{wood:60, stone:60, iron:40}, req:['mining'],
+    desc:'Открывает Буровую — добыча без людей' },
+  { id:'robotics',      name:'Робототехника', cost:{iron:80, gold:20}, req:['mechanization'],
+    desc:'Открывает Роботов — автономные сборщики ресурсов' },
+];
+
+const RES_INFO = [
+  ['wood','Дерево','#7a5230'], ['stone','Камень','#9aa0a6'], ['food','Еда','#d8a33c'],
+  ['coal','Уголь','#3d3d44'],  ['iron','Железо','#a8705a'],  ['gold','Золото','#e6c341']
+];
+
+/* =========================================================
+   СОСТОЯНИЕ ИГРЫ
+   ========================================================= */
+const G = {
+  res: { wood:60, stone:20, food:40, coal:0, iron:0, gold:0 },
+  units: [], buildings: [], roads: [], regrow: [],
+  time: 0, growT: 0,
+  techs: {},
+  sel: null, build: null, mouse: {x:0,y:0,inside:false},
+  infoT: 0
+};
+let roadGrid = [];
+for(let y=0;y<MH;y++){ roadGrid[y]=[]; for(let x=0;x<MW;x++) roadGrid[y][x]=false; }
+
+function cap(){ return 200 + G.buildings.filter(b=>b.type==='storage').length*150; }
+function addRes(k,v){ G.res[k] = Math.min(cap(), G.res[k] + v); }
+function canAfford(c){ for(const k in c) if(G.res[k] < c[k]) return false; return true; }
+function pay(c){ if(!canAfford(c)) return false; for(const k in c) G.res[k] -= c[k]; return true; }
+function costStr(c){ return Object.keys(c).map(k=>`${k==='wood'?'дер':k==='stone'?'кам':k==='food'?'ед':k==='coal'?'уг':k==='iron'?'жел':k==='gold'?'зол':k} ${c[k]}`).join(' · '); }
+
+/* ---------- камера ---------- */
+const cam = { x: 0, y: 0, zoom: 1 };
+let ox = 0, oy = 0, z = 1;
+function updCam(){ z = cam.zoom; ox = W/2 - cam.x*z; oy = H/2 - cam.y*z; }
+function screenToWorld(sx,sy){ return [ (sx-ox)/z, (sy-oy)/z ]; }
+
+/* =========================================================
+   ТЕРРЕЙН-КЭШ
+   ========================================================= */
+const tcan = document.createElement('canvas');
+tcan.width = MW*TS; tcan.height = MH*TS;
+const tctx = tcan.getContext('2d');
+
+const TCOL = {
+  grass: ['#4a7437','#517d3c','#446b32','#568440'],
+  sand:  ['#c7b789','#c0b081','#cbbc8e'],
+  water: ['#2b5c86','#27547b','#30628d']
+};
+
+function renderTerrain(){
+  for(let y=0;y<MH;y++){
+    for(let x=0;x<MW;x++){
+      const t = terrain[y][x];
+      const arr = TCOL[t.t];
+      tctx.fillStyle = arr[Math.floor(t.v*arr.length) % arr.length];
+      tctx.fillRect(x*TS, y*TS, TS+1, TS+1);
+    }
+  }
+  // лёгкая «текстура»
+  for(let i=0;i<MW*MH*0.35;i++){
+    const x = Math.floor(Math.random()*MW)*TS + Math.random()*TS;
+    const y = Math.floor(Math.random()*MH)*TS + Math.random()*TS;
+    const tx = Math.floor(x/TS), ty = Math.floor(y/TS);
+    if(terrain[ty][tx].t === 'water') continue;
+    tctx.fillStyle = 'rgba(0,0,0,0.05)';
+    tctx.fillRect(x, y, 2, 2);
+  }
+  // рамка мира
+  tctx.strokeStyle = '#101820';
+  tctx.lineWidth = 8;
+  tctx.strokeRect(0,0,MW*TS,MH*TS);
+}
+
+function drawRoadTile(tx,ty){
+  tctx.fillStyle = '#6b6b6b';
+  tctx.fillRect(tx*TS+4, ty*TS+4, TS-8, TS-8);
+  tctx.fillStyle = '#7b7b7b';
+  tctx.fillRect(tx*TS+7, ty*TS+7, TS-14, TS-14);
+}
+
+/* =========================================================
+   ЮНИТЫ
+   ========================================================= */
+class Unit {
+  constructor(x,y,robot){
+    this.x=x; this.y=y; this.robot=!!robot;
+    this.state='idle'; this.target=null; this.job=null;
+    this.carry=null; this.carryAmt=0;
+    this.timer=0; this.idleT=Math.random()*0.6;
+    this.speed = robot?80:48;
+    this.wax=0; this.way=0;
+    this.stuckT=0; this.lx=x; this.ly=y;
+    this.phase=Math.random()*6.28;
+  }
+}
+
+function isWaterPx(px,py){
+  const tx = Math.floor(px/TS), ty = Math.floor(py/TS);
+  if(tx<0||ty<0||tx>=MW||ty>=MH) return true;
+  return terrain[ty][tx].t === 'water';
+}
+
+function moveTo(u, tx, ty, dt){
+  const dx = tx-u.x, dy = ty-u.y;
+  const d = Math.hypot(dx,dy);
+  if(d < 2.5) return true;
+  let sp = u.speed;
+  const ttx = Math.floor(u.x/TS), tty = Math.floor(u.y/TS);
+  if(roadGrid[tty] && roadGrid[tty][ttx]) sp *= 1.7;
+  const step = Math.min(d, sp*dt);
+  let nx = u.x + dx/d*step;
+  let ny = u.y + dy/d*step;
+  if(isWaterPx(nx, u.y)) nx = u.x;
+  if(isWaterPx(u.x, ny)) ny = u.y;
+  u.x = nx; u.y = ny;
+  return d < 3.5;
+}
+
+function nearestStorage(u){
+  let best=null, bd=1e18;
+  for(const b of G.buildings){
+    if(b.type!=='house' && b.type!=='storage') continue;
+    const d = (b.px-u.x)**2 + (b.py-u.y)**2;
+    if(d<bd){ bd=d; best=b; }
+  }
+  return best;
+}
+
+function assignJob(u){
+  // 1) работа в зданиях (только люди)
+  if(!u.robot){
+    let best=null, bd=1e18;
+    for(const b of G.buildings){
+      const def = b.def;
+      if(!def.workers || def.auto) continue;
+      if(b.workers.length >= def.workers) continue;
+      const d = (b.px-u.x)**2 + (b.py-u.y)**2;
+      if(d<bd){ bd=d; best=b; }
+    }
+    if(best){
+      best.workers.push(u);
+      u.job = best;
+      const a = Math.random()*6.28, r = 12+Math.random()*8;
+      u.wax = Math.cos(a)*r; u.way = Math.sin(a)*r;
+      u.state = 'goBuilding';
+      return;
+    }
+  }
+  // 2) собирательство
+  let bn=null, bnd=1e18;
+  for(let y=0;y<MH;y++){
+    for(let x=0;x<MW;x++){
+      const n = nodes[y][x];
+      if(!n) continue;
+      if(n.type!=='tree' && n.type!=='rock') continue;
+      if(n.amount <= 0) continue;
+      const d = (x*TS+16-u.x)**2 + (y*TS+16-u.y)**2;
+      if(d<bnd){ bnd=d; bn=n; }
+    }
+  }
+  if(bn){ u.target = bn; u.state = 'goNode'; return; }
+  u.state = 'idle';
+}
+
+function depositCarry(u){
+  if(u.carry && u.carryAmt > 0){
+    addRes(u.carry, u.carryAmt);
+  }
+  u.carry = null; u.carryAmt = 0;
+}
+
+function updateUnit(u, dt){
+  const moving = (u.state==='goNode'||u.state==='goStore'||u.state==='goBuilding');
+
+  if(moving){
+    u.stuckT += dt;
+    if(u.stuckT > 2.5){
+      if(Math.hypot(u.x-u.lx, u.y-u.ly) < 5){
+        // застрял — бросаем задачу
+        if(u.job){ const i = u.job.workers.indexOf(u); if(i>=0) u.job.workers.splice(i,1); }
+        u.job = null; u.target = null; u.state='idle'; u.idleT = 0.6;
+      }
+      u.stuckT = 0; u.lx = u.x; u.ly = u.y;
+    }
+  }
+
+  switch(u.state){
+    case 'idle': {
+      u.idleT -= dt;
+      if(u.idleT <= 0){ assignJob(u); u.idleT = 0.5; }
+      break;
+    }
+    case 'goNode': {
+      const n = u.target;
+      if(!n || n.amount <= 0 || nodes[n.ty][n.tx] !== n){ u.state='idle'; u.target=null; break; }
+      if(moveTo(u, n.tx*TS+16, n.ty*TS+16, dt)){ u.state='gather'; u.timer = 2.2; }
+      break;
+    }
+    case 'gather': {
+      u.timer -= dt;
+      if(u.timer <= 0){
+        const n = u.target;
+        if(!n || nodes[n.ty][n.tx] !== n || n.amount <= 0){ u.state='idle'; u.target=null; break; }
+        n.amount--;
+        u.carry = (n.type === 'tree') ? 'wood' : 'stone';
+        u.carryAmt = 5;
+        if(n.amount <= 0){
+          if(n.type === 'tree'){
+            G.regrow.push({ tx:n.tx, ty:n.ty, t: 25 + Math.random()*18 });
+          } else {
+            nodes[n.ty][n.tx] = null;
+          }
+        }
+        u.target = null;
+        u.state = 'goStore';
+      }
+      break;
+    }
+    case 'goStore': {
+      const s = nearestStorage(u);
+      if(!s){ depositCarry(u); u.state='idle'; break; }
+      if(moveTo(u, s.px, s.py, dt)){ depositCarry(u); u.state='idle'; u.idleT = 0.25; }
+      break;
+    }
+    case 'goBuilding': {
+      const b = u.job;
+      if(!b){ u.state='idle'; break; }
+      if(moveTo(u, b.px + u.wax, b.py + u.way, dt)) u.state = 'work';
+      break;
+    }
+    case 'work': {
+      if(!u.job || u.job.workers.indexOf(u) < 0){ u.state='idle'; u.job=null; }
+      break;
+    }
+  }
+}
+
+/* =========================================================
+   ОБНОВЛЕНИЕ МИРА
+   ========================================================= */
+function update(dt){
+  G.time += dt;
+
+  // отрастание деревьев
+  for(let i=G.regrow.length-1;i>=0;i--){
+    const r = G.regrow[i];
+    r.t -= dt;
+    if(r.t <= 0){
+      const n = nodes[r.ty][r.tx];
+      if(n && n.type === 'tree') n.amount = 3;
+      G.regrow.splice(i,1);
+    }
+  }
+
+  // юниты
+  for(const u of G.units) updateUnit(u, dt);
+
+  // производство зданий
+  for(const b of G.buildings){
+    const def = b.def;
+    if(def.auto){
+      if(b.deposit){
+        const res = DEPOSITS[b.deposit];
+        const rate = res==='gold'?0.07 : res==='iron'?0.13 : res==='coal'?0.19 : 0.22;
+        addRes(res, rate*dt);
+      }
+      continue;
+    }
+    if(!def.workers) continue;
+    const w = b.workers.length;
+    if(w === 0) continue;
+    if(b.type === 'mine' && b.deposit){
+      const res = DEPOSITS[b.deposit];
+      const rate = res==='gold'?0.08 : res==='iron'?0.18 : res==='coal'?0.26 : 0.32;
+      addRes(res, rate*w*dt);
+    } else if(b.type === 'farm'){
+      addRes('food', 0.4*w*dt);
+    } else if(b.type === 'grove'){
+      addRes('wood', 0.38*w*dt);
+    }
+  }
+
+  // потребление еды
+  let pop = 0;
+  for(const u of G.units) if(!u.robot) pop++;
+  if(pop > 0){
+    G.res.food = Math.max(0, G.res.food - pop*0.032*dt);
+  }
+
+  // рост населения
+  G.growT += dt;
+  if(G.growT > 16){
+    G.growT = 0;
+    const houses = G.buildings.filter(b=>b.type==='house');
+    const capP = houses.length*4;
+    if(G.units.length < capP && G.res.food >= 15 && houses.length){
+      G.res.food -= 10;
+      const h = houses[Math.floor(Math.random()*houses.length)];
+      const nu = new Unit(h.px + (Math.random()-0.5)*20, h.py + 20 + (Math.random()-0.5)*20, false);
+      G.units.push(nu);
+      toast('Новый житель поселился в деревне');
+    }
+  }
+
+  // подсказки
+  if(G.infoT > 0){ G.infoT -= dt; if(G.infoT <= 0) infoEl.classList.remove('open'); }
+}
+
+/* =========================================================
+   РЕНДЕР
+   ========================================================= */
+function tileVisible(tx,ty){
+  const sx = tx*TS*z + ox, sy = ty*TS*z + oy;
+  return sx > -TS*z && sx < W && sy > -TS*z && sy < H;
+}
+
+function drawNode(n, sx, sy, s){
+  const cx = sx + s/2, cy = sy + s/2;
+  if(n.type === 'tree'){
+    if(n.amount <= 0){
+      // пень
+      ctx.fillStyle = '#5a3d1e';
+      ctx.beginPath(); ctx.arc(cx, cy+2, s*0.14, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#3f2a13';
+      ctx.beginPath(); ctx.arc(cx, cy+2, s*0.07, 0, 6.3); ctx.fill();
+      return;
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.ellipse(cx, cy+s*0.28, s*0.26, s*0.1, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#4a2f16';
+    ctx.fillRect(cx - s*0.045, cy + s*0.02, s*0.09, s*0.24);
+    ctx.fillStyle = '#2d6528';
+    ctx.beginPath(); ctx.arc(cx, cy - s*0.06, s*0.29, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#3a7d33';
+    ctx.beginPath(); ctx.arc(cx - s*0.13, cy + s*0.03, s*0.19, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + s*0.14, cy + s*0.01, s*0.17, 0, 6.3); ctx.fill();
+    return;
+  }
+  if(n.type === 'rock'){
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.ellipse(cx, cy+s*0.22, s*0.25, s*0.09, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#8f959c';
+    ctx.beginPath(); ctx.arc(cx - s*0.09, cy + s*0.04, s*0.17, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#a8aeb5';
+    ctx.beginPath(); ctx.arc(cx + s*0.1, cy - s*0.02, s*0.14, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#7c828a';
+    ctx.beginPath(); ctx.arc(cx + s*0.02, cy + s*0.12, s*0.13, 0, 6.3); ctx.fill();
+    return;
+  }
+  // залежи
+  const colMap = { stoneD:'#9aa0a6', coalD:'#31313a', ironD:'#a3674a', goldD:'#e0b83a' };
+  const col = colMap[n.type] || '#888';
+  ctx.fillStyle = 'rgba(0,0,0,.2)';
+  ctx.beginPath(); ctx.ellipse(cx, cy+s*0.26, s*0.31, s*0.12, 0, 0, 6.3); ctx.fill();
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(cx - s*0.13, cy + s*0.06, s*0.16, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + s*0.11, cy + s*0.11, s*0.14, 0, 6.3); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + s*0.02, cy - s*0.08, s*0.17, 0, 6.3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.22)';
+  ctx.beginPath(); ctx.arc(cx - s*0.02, cy - s*0.14, s*0.07, 0, 6.3); ctx.fill();
+}
+
+function drawBuilding(b, sx, sy, s){
+  const def = b.def;
+  const cx = sx + s/2, cy = sy + s/2;
+  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.beginPath(); ctx.ellipse(cx, sy + s*0.9, s*0.42, s*0.13, 0, 0, 6.3); ctx.fill();
+
+  if(b.type === 'house'){
+    ctx.fillStyle = '#d9c7a8';
+    ctx.fillRect(sx + s*0.14, sy + s*0.34, s*0.72, s*0.56);
+    ctx.fillStyle = '#a8563c';
+    ctx.beginPath();
+    ctx.moveTo(sx + s*0.06, sy + s*0.36);
+    ctx.lineTo(cx, sy + s*0.04);
+    ctx.lineTo(sx + s*0.94, sy + s*0.36);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#6b4523';
+    ctx.fillRect(cx - s*0.1, sy + s*0.6, s*0.2, s*0.3);
+    return;
+  }
+  if(b.type === 'storage'){
+    ctx.fillStyle = '#8d95a3';
+    ctx.fillRect(sx + s*0.12, sy + s*0.32, s*0.76, s*0.58);
+    ctx.fillStyle = '#6b7381';
+    ctx.fillRect(sx + s*0.12, sy + s*0.32, s*0.76, s*0.14);
+    ctx.fillStyle = '#c0a25a';
+    ctx.fillRect(sx + s*0.24, sy + s*0.55, s*0.2, s*0.22);
+    ctx.fillRect(sx + s*0.56, sy + s*0.55, s*0.2, s*0.22);
+    return;
+  }
+  if(b.type === 'farm'){
+    ctx.fillStyle = '#7a6a2a';
+    ctx.fillRect(sx + s*0.1, sy + s*0.3, s*0.8, s*0.6);
+    ctx.fillStyle = '#d8bc44';
+    for(let i=0;i<3;i++) ctx.fillRect(sx + s*0.16, sy + s*0.4 + i*s*0.16, s*0.68, s*0.08);
+    return;
+  }
+  if(b.type === 'grove'){
+    ctx.fillStyle = '#3d6b34';
+    ctx.fillRect(sx + s*0.1, sy + s*0.28, s*0.8, s*0.62);
+    ctx.fillStyle = '#4e8f3f';
+    for(let i=0;i<3;i++){
+      const a = i*2.1 + b.px*0.01;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a)*s*0.22, cy + Math.sin(a)*s*0.18, s*0.16, 0, 6.3);
+      ctx.fill();
+    }
+    return;
+  }
+  if(b.type === 'mine'){
+    ctx.fillStyle = '#4a4c60';
+    ctx.fillRect(sx + s*0.14, sy + s*0.3, s*0.72, s*0.62);
+    ctx.fillStyle = '#1a1a22';
+    ctx.beginPath();
+    ctx.moveTo(cx - s*0.2, sy + s*0.92);
+    ctx.lineTo(cx - s*0.2, sy + s*0.62);
+    ctx.arc(cx, sy + s*0.62, s*0.2, Math.PI, 0);
+    ctx.lineTo(cx + s*0.2, sy + s*0.92);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#8a8fa5';
+    ctx.fillRect(sx + s*0.18, sy + s*0.24, s*0.64, s*0.09);
+    return;
+  }
+  if(b.type === 'drill'){
+    ctx.fillStyle = '#6a3a7a';
+    ctx.fillRect(sx + s*0.2, sy + s*0.36, s*0.6, s*0.56);
+    ctx.strokeStyle = '#c8a0e0';
+    ctx.lineWidth = Math.max(1.5, s*0.07);
+    ctx.beginPath();
+    const ang = G.time*2.5;
+    ctx.moveTo(cx, sy + s*0.34);
+    ctx.lineTo(cx + Math.cos(ang)*s*0.3, sy + s*0.34 + Math.sin(ang)*s*0.16);
+    ctx.stroke();
+    ctx.fillStyle = '#3b2050';
+    ctx.beginPath(); ctx.arc(cx, sy + s*0.34, s*0.09, 0, 6.3); ctx.fill();
+    return;
+  }
+}
+
+function drawUnit(u, sx, sy, s){
+  const cx = sx, cy = sy;
+  const bob = Math.sin(G.time*8 + u.phase)*1.2;
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.beginPath(); ctx.ellipse(cx, cy + s*0.22, s*0.19, s*0.08, 0, 0, 6.3); ctx.fill();
+
+  ctx.fillStyle = u.robot ? '#9a7ad0' : '#e8d7b8';
+  ctx.beginPath(); ctx.arc(cx, cy - s*0.06 + bob*0.3, s*0.13, 0, 6.3); ctx.fill();
+  ctx.fillStyle = u.robot ? '#7a55b8' : '#3d7fc4';
+  ctx.fillRect(cx - s*0.11, cy + bob*0.3, s*0.22, s*0.2);
+
+  if(u.carry === 'wood'){
+    ctx.fillStyle = '#8a5f2f';
+    ctx.fillRect(cx + s*0.09, cy - s*0.14, s*0.14, s*0.09);
+  } else if(u.carry === 'stone'){
+    ctx.fillStyle = '#a8aeb5';
+    ctx.beginPath(); ctx.arc(cx + s*0.15, cy - s*0.1, s*0.08, 0, 6.3); ctx.fill();
+  }
+
+  if(G.sel === u){
+    ctx.strokeStyle = '#7fe08a';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, s*0.32, 0, 6.3); ctx.stroke();
+  }
+}
+
+function render(){
+  updCam();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle = '#080a0e';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.imageSmoothingEnabled = z < 1;
+  ctx.drawImage(tcan, 0, 0, MW*TS, MH*TS, ox, oy, MW*TS*z, MH*TS*z);
+
+  const s = TS*z;
+
+  // узлы
+  const x0 = clamp(Math.floor(-ox/(s)) - 1, 0, MW-1);
+  const x1 = clamp(Math.ceil((W-ox)/s) + 1, 0, MW-1);
+  const y0 = clamp(Math.floor(-oy/(s)) - 1, 0, MH-1);
+  const y1 = clamp(Math.ceil((H-oy)/s) + 1, 0, MH-1);
+
+  for(let y=y0;y<=y1;y++){
+    for(let x=x0;x<=x1;x++){
+      const n = nodes[y][x];
+      if(n) drawNode(n, x*TS*z+ox, y*TS*z+oy, s);
+    }
+  }
+
+  // здания
+  for(const b of G.buildings){
+    const sx = b.tx*TS*z+ox, sy = b.ty*TS*z+oy;
+    drawBuilding(b, sx, sy, s);
+    if(G.sel === b){
+      ctx.strokeStyle = '#7fe08a'; ctx.lineWidth = 2;
+      ctx.strokeRect(sx+2, sy+2, s-4, s-4);
+    }
+  }
+
+  // юниты
+  for(const u of G.units){
+    const sx = u.x*z + ox, sy = u.y*z + oy;
+    if(sx < -50 || sx > W+50 || sy < -50 || sy > H+50) continue;
+    drawUnit(u, sx, sy, s);
+  }
+
+  // призрак здания
+  if(G.build && G.mouse.inside){
+    const [wx,wy] = screenToWorld(G.mouse.x, G.mouse.y);
+    const tx = Math.floor(wx/TS), ty = Math.floor(wy/TS);
+    if(tx>=0 && ty>=0 && tx<MW && ty<MH){
+      const ok = canPlace(G.build, tx, ty);
+      ctx.fillStyle = ok ? 'rgba(90,220,120,.28)' : 'rgba(230,80,80,.28)';
+      ctx.fillRect(tx*TS*z+ox, ty*TS*z+oy, s, s);
+      ctx.strokeStyle = ok ? '#7fe08a' : '#e05a5a';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(tx*TS*z+ox+1, ty*TS*z+oy+1, s-2, s-2);
+    }
+  }
+}
+
+/* =========================================================
+   РАЗМЕЩЕНИЕ
+   ========================================================= */
+function buildingAt(tx,ty){
+  for(const b of G.buildings) if(b.tx===tx && b.ty===ty) return b;
+  return null;
+}
+
+function canPlace(type, tx, ty){
+  if(tx<1||ty<1||tx>=MW-1||ty>=MH-1) return false;
+  if(terrain[ty][tx].t === 'water') return false;
+  if(type === 'road'){
+    if(roadGrid[ty][tx]) return false;
+    if(buildingAt(tx,ty)) return false;
+    return true;
+  }
+  if(buildingAt(tx,ty)) return false;
+  const n = nodes[ty][tx];
+  if(type === 'mine' || type === 'drill'){
+    return !!(n && isDeposit(n.type));
+  }
+  if(n && isDeposit(n.type)) return false;
+  return true;
+}
+
+function tryPlace(type, tx, ty){
+  if(!canPlace(type, tx, ty)){ return false; }
+  const cost = COSTS[type];
+  if(!canAfford(cost)){ toast('Не хватает ресурсов'); return false; }
+  pay(cost);
+
+  if(type === 'road'){
+    roadGrid[ty][tx] = true;
+    drawRoadTile(tx,ty);
+    return true;
+  }
+
+  const def = BUILDINGS[type];
+  const b = {
+    type, def, tx, ty,
+    px: tx*TS+TS/2, py: ty*TS+TS/2,
+    workers: [], deposit: null
+  };
+  const n = nodes[ty][tx];
+  if(n && isDeposit(n.type)) b.deposit = n.type;
+  // расчищаем деревья/камни
+  if(n && (n.type==='tree' || n.type==='rock')) nodes[ty][tx] = null;
+
+  G.buildings.push(b);
+  return true;
+}
+
+function spawnRobot(){
+  const cost = COSTS.robot;
+  if(!canAfford(cost)){ toast('Не хватает ресурсов'); return; }
+  const houses = G.buildings.filter(b=>b.type==='house');
+  if(!houses.length){ toast('Нужен хотя бы один дом'); return; }
+  pay(cost);
+  const h = houses[0];
+  const u = new Unit(h.px + (Math.random()-0.5)*26, h.py + 26 + (Math.random()-0.5)*26, true);
+  G.units.push(u);
+  toast('Робот собран');
+}
+
+/* =========================================================
+   UI
+   ========================================================= */
+const resbarEl = document.getElementById('resbar');
+const buildEl  = document.getElementById('build');
+const techEl   = document.getElementById('techpanel');
+const toastEl  = document.getElementById('toast');
+const infoEl   = document.getElementById('info');
+
+let toastT = 0;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.style.opacity = 1;
+  toastT = 2.2;
+}
+
+const buildBtns = {};
+function makeBuildUI(){
+  buildEl.innerHTML = '';
+  const list = ['house','storage','road','mine','farm','grove','drill','robot'];
+  for(const id of list){
+    const div = document.createElement('div');
+    div.className = 'btn';
+    const name = id === 'road' ? 'Дорога' : id === 'robot' ? 'Робот' : BUILDINGS[id].name;
+    div.innerHTML = `<div>${name}</div><div class="c">${costStr(COSTS[id])}</div>`;
+    div.onclick = () => {
+      const req = REQS[id];
+      if(req && !G.techs[req]){ toast('Нужна технология: ' + TECHS.find(t=>t.id===req).name); return; }
+      if(id === 'robot'){ spawnRobot(); return; }
+      if(G.build === id){ G.build = null; }
+      else { G.build = id; }
+      refreshBuildUI();
+    };
+    buildEl.appendChild(div);
+    buildBtns[id] = div;
+  }
+  const tbtn = document.createElement('div');
+  tbtn.className = 'btn';
+  tbtn.innerHTML = `<div>Технологии</div><div class="c">клавиша T</div>`;
+  tbtn.onclick = () => { techEl.classList.toggle('open'); renderTech(); };
+  buildEl.appendChild(tbtn);
+}
+
+function refreshBuildUI(){
+  for(const id in buildBtns){
+    const el = buildBtns[id];
+    const req = REQS[id];
+    const locked = req && !G.techs[req];
+    const afford = canAfford(COSTS[id]);
+    el.classList.toggle('dis', locked || !afford);
+    el.classList.toggle('active', G.build === id);
+  }
+}
+
+function renderTech(){
+  techEl.innerHTML = '<h3>Дерево технологий</h3>';
+  for(const t of TECHS){
+    const done = !!G.techs[t.id];
+    const unlocked = !t.req || t.req.every(r => G.techs[r]);
+    const div = document.createElement('div');
+    div.className = 'tech' + (done ? ' done' : '') + (unlocked ? '' : ' locked');
+    div.innerHTML = `<b>${t.name}</b><div class="td">${t.desc}</div>` +
+      `<div class="tc">${done ? '✓ изучено' : costStr(t.cost)}</div>`;
+    if(!done && unlocked){
+      div.onclick = () => {
+        if(pay(t.cost)){
+          G.techs[t.id] = true;
+          renderTech();
+          refreshBuildUI();
+          toast('Изучено: ' + t.name);
+        } else {
+          toast('Не хватает ресурсов');
+        }
+      };
+    }
+    techEl.appendChild(div);
+  }
+}
+
+let uiTimer = 0;
+function updateResUI(){
+  let html = '';
+  for(const [k,name,col] of RES_INFO){
+    html += `<div class="res"><span class="dot" style="background:${col}"></span>${name}: <b>${Math.floor(G.res[k])}</b></div>`;
+  }
+  html += `<div class="res">👥 <b>${G.units.filter(u=>!u.robot).length}</b>/${G.buildings.filter(b=>b.type==='house').length*4}</div>`;
+  if(G.units.some(u=>u.robot))
+    html += `<div class="res">🤖 <b>${G.units.filter(u=>u.robot).length}</b></div>`;
+  html += `<div class="res">📦 <b>${Math.floor(cap())}</b></div>`;
+  resbarEl.innerHTML = html;
+}
+
+function updateInfoUI(){
+  if(!G.sel){ infoEl.classList.remove('open'); return; }
+  let html = '';
+  if(G.sel instanceof Unit){
+    const u = G.sel;
+    const st = {idle:'свободен', goNode:'идёт к ресурсу', gather:'добывает',
+      goStore:'несёт на склад', goBuilding:'идёт на работу', work:'работает'}[u.state] || u.state;
+    html = `<b>${u.robot ? 'Робот' : 'Житель'}</b><br>Состояние: ${st}` +
+      (u.job ? `<br>Работа: ${u.job.def.name}` : '') +
+      (u.carry ? `<br>Несёт: ${u.carry} x${u.carryAmt}` : '');
+  } else {
+    const b = G.sel;
+    html = `<b>${b.def.name}</b><br>${b.def.desc}`;
+    if(b.def.workers) html += `<br>Рабочих: ${b.workers.length}/${b.def.workers}`;
+    if(b.deposit) html += `<br>Залежь: ${b.deposit.replace('D','')}`;
+  }
+  infoEl.innerHTML = html;
+  infoEl.classList.add('open');
+}
+
+/* =========================================================
+   ВВОД
+   ========================================================= */
+const keys = {};
+addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if(e.key === 'Escape'){ G.build = null; refreshBuildUI(); }
+  if(e.key.toLowerCase() === 't'){ techEl.classList.toggle('open'); renderTech(); }
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+let dragging = false, dragMoved = false, lastMX = 0, lastMY = 0, downBtn = 0;
+
+canvas.addEventListener('mousedown', e => {
+  if(e.button === 0 || e.button === 1 || e.button === 2){
+    dragging = true; dragMoved = false;
+    lastMX = e.clientX; lastMY = e.clientY; downBtn = e.button;
+  }
+});
+canvas.addEventListener('mousemove', e => {
+  G.mouse.x = e.clientX; G.mouse.y = e.clientY; G.mouse.inside = true;
+  if(dragging){
+    const dx = e.clientX - lastMX, dy = e.clientY - lastMY;
+    if(Math.abs(dx) + Math.abs(dy) > 3) dragMoved = true;
+    if(dragMoved){
+      cam.x -= dx/cam.zoom;
+      cam.y -= dy/cam.zoom;
+      clampCam();
+    }
+    lastMX = e.clientX; lastMY = e.clientY;
+  }
+});
+addEventListener('mouseup', e => {
+  if(dragging && !dragMoved && e.button === 0){
+    handleClick(e.clientX, e.clientY);
+  }
+  dragging = false;
+});
+canvas.addEventListener('mouseleave', () => { G.mouse.inside = false; dragging = false; });
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  G.build = null; refreshBuildUI();
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const [wx,wy] = screenToWorld(e.clientX, e.clientY);
+  const f = e.deltaY > 0 ? 0.88 : 1.14;
+  cam.zoom = clamp(cam.zoom * f, 0.45, 2.6);
+  const [nx,ny] = screenToWorld(e.clientX, e.clientY);
+  cam.x += wx - nx; cam.y += wy - ny;
+  clampCam();
+}, {passive:false});
+
+function clampCam(){
+  const halfW = (W/2)/cam.zoom, halfH = (H/2)/cam.zoom;
+  const worldW = MW*TS, worldH = MH*TS;
+  if(worldW < halfW*2) cam.x = worldW/2;
+  else cam.x = clamp(cam.x, halfW, worldW-halfW);
+  if(worldH < halfH*2) cam.y = worldH/2;
+  else cam.y = clamp(cam.y, halfH, worldH-halfH);
+}
+
+function handleClick(sx, sy){
+  const [wx, wy] = screenToWorld(sx, sy);
+  const tx = Math.floor(wx/TS), ty = Math.floor(wy/TS);
+
+  if(G.build){
+    if(tryPlace(G.build, tx, ty)){
+      if(!keys['shift']) { G.build = null; }
+      refreshBuildUI();
+    }
+    return;
+  }
+
+  // выбор юнита
+  let best = null, bd = 22/cam.zoom;
+  for(const u of G.units){
+    const d = Math.hypot(u.x-wx, u.y-wy);
+    if(d < bd){ bd = d; best = u; }
+  }
+  if(best){ G.sel = best; updateInfoUI(); return; }
+
+  // выбор здания
+  const b = buildingAt(tx,ty);
+  if(b){ G.sel = b; updateInfoUI(); return; }
+
+  G.sel = null;
+  infoEl.classList.remove('open');
+}
+
+/* =========================================================
+   СТАРТОВАЯ ПОЗИЦИЯ
+   ========================================================= */
+function findStart(){
+  let best = null, bestScore = -1e9;
+  for(let y=6;y<MH-6;y++){
+    for(let x=6;x<MW-6;x++){
+      if(terrain[y][x].t !== 'grass') continue;
+      let trees = 0, water = 0, dep = 0;
+      for(let dy=-4;dy<=4;dy++){
+        for(let dx=-4;dx<=4;dx++){
+          const n = nodes[y+dy][x+dx];
+          if(n && n.type==='tree') trees++;
+          if(n && isDeposit(n.type)) dep++;
+          if(terrain[y+dy][x+dx].t === 'water') water++;
+        }
+      }
+      const score = trees*2.5 - water*6 - dep*4
+        - Math.abs(x-MW/2)*0.15 - Math.abs(y-MH/2)*0.15;
+      if(score > bestScore){ bestScore = score; best = {x,y}; }
+    }
+  }
+  return best || {x: Math.floor(MW/2), y: Math.floor(MH/2)};
+}
+
+function startGame(){
+  genWorld();
+  renderTerrain();
+
+  G.res = { wood:60, stone:20, food:40, coal:0, iron:0, gold:0 };
+  G.units = []; G.buildings = []; G.regrow = [];
+  G.techs = {}; G.sel = null; G.build = null; G.time = 0; G.growT = 0;
+  for(let y=0;y<MH;y++) for(let x=0;x<MW;x++) roadGrid[y][x] = false;
+
+  const st = findStart();
+
+  // расчищаем площадку
+  for(let dy=-2;dy<=2;dy++){
+    for(let dx=-2;dx<=2;dx++){
+      const x = st.x+dx, y = st.y+dy;
+      if(x<0||y<0||x>=MW||y>=MH) continue;
+      const n = nodes[y][x];
+      if(n && !isDeposit(n.type)) nodes[y][x] = null;
+    }
+  }
+  nodes[st.y][st.x] = null;
+  nodes[st.y][st.x+1] = null;
+  terrain[st.y][st.x].t = 'grass';
+  terrain[st.y][st.x+1].t = 'grass';
+  renderTerrain();
+
+  // дом
+  const house = {
+    type:'house', def:BUILDINGS.house, tx:st.x, ty:st.y,
+    px: st.x*TS+TS/2, py: st.y*TS+TS/2, workers:[], deposit:null
+  };
+  G.buildings.push(house);
+
+  // склад
+  const stg = {
+    type:'storage', def:BUILDINGS.storage, tx:st.x+1, ty:st.y,
+    px: (st.x+1)*TS+TS/2, py: st.y*TS+TS/2, workers:[], deposit:null
+  };
+  G.buildings.push(stg);
+
+  // два жителя
+  G.units.push(new Unit(house.px - 10, house.py + 22, false));
+  G.units.push(new Unit(house.px + 12, house.py + 26, false));
+
+  cam.x = st.x*TS + TS;
+  cam.y = st.y*TS + TS;
+  cam.zoom = 1.4;
+  clampCam();
+
+  renderTech();
+  makeBuildUI();
+  refreshBuildUI();
+  toast('Добро пожаловать! Ваши люди начнут собирать ресурсы автоматически');
+}
+
+/* =========================================================
+   ГЛАВНЫЙ ЦИКЛ
+   ========================================================= */
+let last = performance.now();
+let acc = 0;
+
+function loop(now){
+  requestAnimationFrame(loop);
+  let dt = (now - last) / 1000;
+  last = now;
+  if(dt > 0.1) dt = 0.1;
+
+  // камера с клавиатуры
+  const spd = 520/cam.zoom * dt;
+  let moved = false;
+  if(keys['a'] || keys['arrowleft'] || keys['ф']){ cam.x -= spd; moved = true; }
+  if(keys['d'] || keys['arrowright'] || keys['в']){ cam.x += spd; moved = true; }
+  if(keys['w'] || keys['arrowup'] || keys['ц']){ cam.y -= spd; moved = true; }
+  if(keys['s'] || keys['arrowdown'] || keys['ы']){ cam.y += spd; moved = true; }
+  if(moved) clampCam();
+
+  update(dt);
+
+  // UI таймеры
+  acc += dt;
+  if(acc > 0.12){ acc = 0; updateResUI(); refreshBuildUI(); }
+
+  if(toastT > 0){
+    toastT -= dt;
+    if(toastT <= 0) toastEl.style.opacity = 0;
+  }
+
+  render();
+}
+
+startGame();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
