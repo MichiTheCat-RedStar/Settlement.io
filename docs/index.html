@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Поселение v43</title>
+<title>Поселение v46 — исправление входа</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#0b0e13;font-family:system-ui,'Segoe UI',Arial,sans-serif;color:#e8eef7;user-select:none}
@@ -129,7 +129,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b0e13;font-family:sy
 #statsmodal,#workersmodal,#settingsmodal,#gameovermodal,#achievementsmodal,#diplomacymodal,#techmodal{position:absolute;inset:0;background:rgba(5,8,12,.93);display:none;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(10px)}
 #statsmodal.open,#workersmodal.open,#settingsmodal.open,#gameovermodal.open,#achievementsmodal.open,#diplomacymodal.open,#techmodal.open{display:flex}
 #statsmodal .menu-box{width:780px;max-width:95vw;padding:20px;display:flex;flex-direction:column;align-items:center}
-#statscanvas{display:block;width:100%;max-width:720px;height:auto;aspect-ratio:720/400;background:#0e1420;border-radius:8px;border:1px solid #2c3747;margin-bottom:15px}
+#statscanvas{display:block;width:100%;max-width:720px;height:auto;aspect-ratio:720/400;background:#0e1420;border-radius:8px;border:1px solid #2c3747;margin-bottom:8px}
+#stats-controls{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;color:#8fa6c0;font-size:12px}
+#stats-controls select{max-width:100%;background:#1e2b3d;color:#e8eef7;border:1px solid #3a4a5e;border-radius:5px;padding:5px 8px;font-size:12px}
+#statslegend{width:100%;display:flex;flex-wrap:wrap;justify-content:center;gap:5px 10px;font-size:10px;color:#c8d6e8;margin-bottom:8px}
+.stats-legend-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.stats-legend-dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
 .worker-row{padding:5px 8px;border-bottom:1px solid rgba(60,75,95,.3);cursor:pointer;display:flex;justify-content:space-between;font-size:12px}
 .worker-row:hover{background:rgba(40,58,84,.6)}
 .worker-row .vac{color:#e08a7a}
@@ -196,6 +201,19 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b0e13;font-family:sy
 .author-credit{text-align:center;margin-top:14px;padding-top:12px;border-top:1px solid #2c3747;font-size:11px;color:#6c8098;line-height:1.6}
 .author-credit a{color:#6fa4e2;text-decoration:none;font-weight:600}
 .author-credit a:hover{text-decoration:underline;color:#9fc4ee}
+.mp-table{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.2fr) minmax(0,1.2fr);gap:6px;margin:10px 0}
+.mp-head{background:#203047;border:1px solid #3a4a5e;border-radius:6px;padding:8px;text-align:center;color:#9fc4ee;font-size:12px;font-weight:700}
+.mp-cell{min-width:0;background:#101824;border:1px solid #2c3747;border-radius:7px;padding:9px;font-size:11px;line-height:1.45;color:#c8d6e8}
+.mp-cell input{width:100%;min-width:0;background:#1e2b3d;border:1px solid #3a4a5e;color:#e8eef7;border-radius:5px;padding:8px;font-size:12px;margin:4px 0}
+.mp-cell button{width:100%;display:block;text-align:center;padding:8px 7px;font-size:11px}
+.mp-cell p{margin:2px 0 9px}
+.mp-command-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:7px 0 9px;padding:7px;background:#0b111a;border:1px solid #2c3747;border-radius:6px}
+.mp-command-row code{flex:1;min-width:110px;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#b8f0cf;user-select:text}
+.mp-command-row button{width:auto;flex:0 0 auto;margin:0;padding:6px 9px;white-space:nowrap}
+.mp-status{padding:8px 10px;border:1px solid #38526f;border-radius:6px;background:#101824;color:#9fc4ee;font-size:11px;line-height:1.45;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.mp-roomcode{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 10px;margin:8px 0;background:#13251f;border:1px solid #3a8060;border-radius:7px;color:#b8f0cf;font-size:12px}.mp-roomcode span{font-family:monospace;letter-spacing:2px;font-size:16px;color:#fff}.mp-roomcode button{background:#285b45;border:1px solid #4c9870;color:#fff;border-radius:5px;padding:5px 9px;cursor:pointer}.mp-roomcode small{width:100%;color:#8fa6c0}
+.mp-players{font-size:11px;color:#8fa6c0;line-height:1.5;margin:6px 0}
+#mp-indicator{display:none;background:rgba(20,60,48,.92);border-color:#3a8060;color:#b8f0cf}
 .seed-input-row{display:flex;gap:6px;margin-bottom:10px}
 .seed-input-row input{flex:1;background:#1e2b3d;border:1px solid #3a4a5e;color:#e8eef7;border-radius:5px;padding:7px 10px;font-size:12px;font-family:monospace}
 .seed-input-row button{margin-bottom:0;width:auto;padding:7px 12px;font-size:11px}
@@ -243,6 +261,9 @@ body.ui-hidden .tbtn,body.ui-hidden .timegroup,body.ui-hidden #build,body.ui-hid
 #tech-legend .dot{width:10px;height:10px;border-radius:3px}
 
 @media (max-width: 760px){
+  .mp-table{grid-template-columns:1fr}
+  .mp-head{display:none}
+  .mp-cell:first-of-type{order:0}
   #topbar{top:5px;right:5px;gap:3px;max-width:calc(100vw - 10px)}
   .tbtn{padding:5px 6px;font-size:11px}
   .timegroup{gap:1px;padding:1px}
@@ -288,7 +309,20 @@ body.ui-hidden .tbtn,body.ui-hidden .timegroup,body.ui-hidden #build,body.ui-hid
   .menu-table.difficulty{grid-template-columns:1fr}
   .seed-input-row{flex-direction:column}
 }
+
+/* v46 multiplayer lobby controls */
+.mp-lobby-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0;padding:10px;background:#0e1420;border:1px solid #2c3747;border-radius:8px}
+.mp-lobby-grid>label{display:block;min-width:0;background:#141c28;border:1px solid #2c3747;border-radius:6px;padding:8px;font-size:11.5px;color:#c8d6e8}
+.mp-lobby-grid select,.mp-lobby-grid input[type=number]{width:100%;margin-top:5px;background:#1e2b3d;color:#e8eef7;border:1px solid #3a4a5e;border-radius:5px;padding:7px;font-size:12px}
+.mp-lobby-grid input[type=range]{display:block;width:100%;margin-top:8px;accent-color:#6fa4e2}
+.mp-lobby-grid input[type=checkbox]{accent-color:#2e5c8f;margin-right:7px}
+.mp-lobby-grid .mp-check{display:flex;align-items:center;gap:6px}
+.mp-roomcode span{user-select:text;-webkit-user-select:text;cursor:text}
+.mp-mode-help{grid-column:1/-1;background:#101824;border:1px solid #38526f;border-left:3px solid #6fa4e2;border-radius:6px;padding:9px 10px;color:#9fc4ee;font-size:11px;line-height:1.45;min-height:36px}
+@media(max-width:760px){.mp-lobby-grid{grid-template-columns:1fr}.mp-mode-help{grid-column:1}}
+
 </style>
+<!-- BUILD: Settlement_v46_JOINFIX_20261115 -->
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -315,6 +349,7 @@ body.ui-hidden .tbtn,body.ui-hidden .timegroup,body.ui-hidden #build,body.ui-hid
   <div class="tbtn" id="techbtn" title="Дерево технологий">🔬 (T)</div>
   <div class="tbtn" id="statsbtn" title="Статистика">📊 (F)</div>
   <div class="tbtn" id="settingsbtn" title="Настройки (O)">⚙</div>
+  <div class="tbtn" id="mp-indicator" title="Экспериментальный мультиплеер" onclick="openMenu('multiplayer')">🌐 MP</div>
   <div class="tbtn" id="menubtn" title="Меню">☰</div>
 </div>
 <div id="info"></div>
@@ -329,7 +364,9 @@ body.ui-hidden .tbtn,body.ui-hidden .timegroup,body.ui-hidden #build,body.ui-hid
 <div id="statsmodal">
   <div class="menu-box">
     <h2>Статистика</h2>
+    <div id="stats-controls"><label for="statsmetric">📈 Ресурс:</label><select id="statsmetric" onchange="drawStats()"><option value="all">Все ресурсы · сравнение динамики</option></select></div>
     <canvas id="statscanvas" width="720" height="400"></canvas>
+    <div id="statslegend"></div>
     <button class="back-btn" onclick="document.getElementById('statsmodal').classList.remove('open')">✕ Закрыть</button>
   </div>
 </div>
@@ -394,7 +431,8 @@ const EN_MAP = {
   'Максимум: GUI как сейчас · Обычный: медленнее · Слабые: редко · Картошка: очень редко. Снижается нагрузка от частого обновления DOM.':'Maximum: GUI as now · Normal: slower · Weak: infrequent · Potato: very infrequent. Reduces frequent DOM refresh load.',
   'Новая игра':'New Game','Загрузить (слот)':'Load (slot)','Загрузить из файла':'Load from file',
   'Сохранить (слот)':'Save (slot)','Скачать в файл':'Download to file','Продолжить игру':'Continue',
-  'Закрыть':'Close','Назад':'Back','Начать игру':'Start Game','Поселение':'Settlement',
+  'Закрыть':'Close','Назад':'Back','Начать игру':'Start Game','Поселение':'Settlement',  'Мультиплеер (экспериментально)':'Multiplayer (experimental)','Множитель скорости исследований':'Research speed multiplier','Множитель скорости строительства':'Construction speed multiplier','Уменьшить':'Decrease','Увеличить':'Increase','Ник':'Nickname','Адрес сервера':'Server address','Хостить':'Host','Войти':'Join','Скачать server.js':'Download server.js',
+
   'Загрузить автосейв':'Load autosave','Достижения':'Achievements','Сохранить игру':'Save Game',
   'Загрузить игру':'Load Game','Слот':'Slot','пусто':'empty','Продолжить в этом мире':'Continue in this world',
   'Поражение':'Defeat','Победа!':'Victory!','Настройки':'Settings','Статистика':'Statistics',
@@ -478,6 +516,9 @@ const EN_MAP = {
   'Градостроительство':'Urbanism','Автоматизация':'Automation','Электротехника':'Electrical Engineering',
   'Военная робототехника':'Military Robotics','Ядерная энергия':'Nuclear Power','Ракетостроение':'Rocketry',
   'Требует':'Requires','Даёт':'Gives','Дают':'Give','производит':'produces','производят':'produce',
+  'Мобильные форпосты':'Mobile Outposts','Прибрежные базы':'Coastal Bases','Автономные дроны-базы':'Autonomous Drone Bases',
+  'Машина-башня':'Mobile Tower Vehicle','Корабль-башня':'Ship Tower','Дрон-башня':'Drone Tower',
+  'Прокрутка камеры у края экрана':'Edge-scrolling camera','Переместить':'Move','Свернуть башню':'Fold tower','Развернуть башню':'Deploy tower',
   'добывают':'mine','добыча':'mining','работает':'works','без рабочих':'without workers',
   'без людей':'without workers','Только':'Only','у берега':'near the coast','на воде':'on water',
   'на залежи':'on a deposit','клетки':'tiles','клеток':'tiles','радиус':'radius',
@@ -609,12 +650,14 @@ const DIFFICULTY = {
 let selectedDifficulty = 'normal';
 let selectedFog = true;
 let selectedDayNight = true;
+let selectedResearchSpeedLevel = 1; // 0: x0.5, 1: x1, 2: x2
+let selectedConstructionSpeedLevel = 1; // 0: x0.5, 1: x1, 2: x2
 let mapSeed = null;
 
 // =================== SETTINGS ===================
 const SETTINGS = {
   sound: true, volume: 0.35, minimap: true, minimapSize: 'medium',
-  log: true, particles: true, hints: true, uiScale: 1.0, fps: false, graphics: 'normal',
+  log: true, particles: true, hints: true, uiScale: 1.0, fps: false, graphics: 'normal', edgeScroll: false,
 };
 function loadSettings(){
   try { const raw = localStorage.getItem('citysim_settings'); if(raw) Object.assign(SETTINGS, JSON.parse(raw)); } catch(e){}
@@ -973,6 +1016,9 @@ const BUILDINGS = {
   radar:       {name:'Радар', tech:'aviation', powerUse:20, auto:true, desc:'Обзор 40 клеток. Требует 20 ⚡.', long:'Огромный радиус обзора, но нуждается в электричестве.', cat:'city', hp:300},
   dock:        {name:'Верфь', tech:'seamanship', coastal:true, desc:'Строит лодки.', long:'Авто-перевозят.', cat:'transport', hp:250},
   helipad:     {name:'Верт. площадка', tech:'aviation', desc:'Строит вертолёты.', long:'Авто-перелёты.', cat:'transport', hp:250},
+  mobileBase:  {name:'Машина-башня', tech:'mobileBases', platform:'land', zoneRadius:8, desc:'Мобильный форпост на суше.', long:'Разверните базу, чтобы расширить зону строительства. Можно свернуть и переместить.', cat:'transport', hp:850},
+  shipBase:    {name:'Корабль-башня', tech:'coastalBases', platform:'water', waterOnly:true, coastalPlatform:true, zoneRadius:6, desc:'Прибрежный мобильный форпост.', long:'Размещается на воде у берега. Зона строительства не дотянется до центра большого острова.', cat:'transport', hp:1000},
+  droneBase:   {name:'Дрон-башня', tech:'droneBases', platform:'air', anyTerrain:true, zoneRadius:11, desc:'Эндгейм-форпост, способный перелетать любой рельеф.', long:'Может разворачиваться на любом открытом типе местности. Самая большая зона строительства.', cat:'transport', hp:700},
   windTurbine: {name:'Ветряк', tech:'electricity', auto:true, powerOutput:5, desc:'+5 ⚡.', long:'Экологически чистый.', cat:'energy', hp:150},
   waterWheel:  {name:'Вод. колесо', tech:'electricity', auto:true, waterOnly:true, powerOutput:8, desc:'+8 ⚡ на воде.', long:'+8 ⚡.', cat:'energy', hp:150},
   solarPanel:  {name:'Солн. панель', tech:'electricity', auto:true, dayOnly:true, powerOutput:15, desc:'+15 ⚡ днём.', long:'Только днём.', cat:'energy', hp:120},
@@ -1046,6 +1092,9 @@ const COSTS = {
   radar:{planks:150,stoneBlocks:100,ironIngot:80,circuits:50,goldIngot:40},
   park:{wood:20,stone:10}, fountain:{stone:40,stoneBlocks:20},
   dock:{wood:60,stone:40}, helipad:{planks:60,stoneBlocks:50,ironIngot:30},
+  mobileBase:{planks:180,stoneBlocks:100,ironIngot:80,gears:30},
+  shipBase:{planks:240,stoneBlocks:140,ironIngot:100,gears:45,circuits:20},
+  droneBase:{planks:260,stoneBlocks:180,ironIngot:150,gears:100,circuits:120,goldIngot:180,uranium:40},
   windTurbine:{planks:40,stoneBlocks:20,copperIngot:10}, waterWheel:{planks:50,stoneBlocks:30,ironIngot:20}, solarPanel:{planks:40,copperIngot:25,goldIngot:5},
   woodBurner:{planks:30,stoneBlocks:20}, coalPlant:{planks:80,stoneBlocks:60,ironIngot:30}, coalSteamPlant:{planks:120,stoneBlocks:100,ironIngot:60}, nuclearPlant:{circuits:50,stoneBlocks:200,uranium:15,goldIngot:80},
   nuclearDiffGen:{circuits:200,gears:150,stoneBlocks:400,goldIngot:200,uranium:100},
@@ -1124,6 +1173,9 @@ const TECHS = [
   {id:'mil_aviation', name:'⚔ Боевая авиация', cost:{gears:40,circuits:35,goldIngot:60}, req:['mil_t4','aviation'], mil:true, desc:'Лёгкие/тяжёлые вертолёты, истребители и бомбардировщики'},
   {id:'nuclearPower', name:'Ядерная энергия', cost:{circuits:100,gears:80,goldIngot:120}, req:['electricalEngineering'], desc:'Реактор, Уран. буровая, Ядер. диф. генератор'},
   {id:'rocketry', name:'Ракетостроение', cost:{circuits:200,gears:200,goldIngot:400,uranium:100}, req:['nuclearPower','automation'], desc:'Ракетная площадка, дипломатия и ракетная шахта'},
+  {id:'mobileBases', name:'🚙 Мобильные форпосты', cost:{planks:140,stoneBlocks:100,ironIngot:80,gears:35}, req:['mechanization','seamanship'], desc:'Машина-башня: развёртывание и перемещение зоны строительства'},
+  {id:'coastalBases', name:'⚓ Прибрежные базы', cost:{planks:180,stoneBlocks:140,ironIngot:100,gears:45,circuits:20}, req:['mobileBases'], desc:'Корабль-башня для расширения строительства вдоль берега'},
+  {id:'droneBases', name:'🛸 Автономные дроны-базы', cost:{circuits:180,gears:140,goldIngot:250,uranium:60}, req:['mobileBases','rocketry','automation'], desc:'Эндгейм-дрон: летает над любым рельефом и несёт зону строительства'},
 ];
 const CATEGORIES = [
   {id:'housing',name:'🏠',title:'Жильё'}, {id:'food',name:'🍞',title:'Еда'},
@@ -1219,6 +1271,9 @@ let logisticsHubs = [];
 let terrainDirty = false, harvestIndex = [], wallGrid = [];
 let enemyFlowField = null, enemyFlowTimer = 0, enemyFlowTargetTx = -1, enemyFlowTargetTy = -1;
 let visualGrid = false;
+const BUILD_ZONE_RADIUS = 7;
+const BUILD_ZONE_ROAD_RADIUS = 3;
+let movingPlatform = null;
 
 // =================== LOD ===================
 // Graphics profiles adjust the distance at which detailed sprites are simplified.
@@ -1342,17 +1397,18 @@ function pay(c){ if(G.creative) return true; if(!canAfford(c)) return false; for
 function costStr(c){ return Object.keys(c).map(k=>`${RES_NAMES[k]||k} ${c[k]}`).join(' · '); }
 function getBuildTime(type){ const cost = COSTS[type] || {}; let sum = 0; for(const k in cost) sum += cost[k]; return 15 + sum * 0.2; }
 function getResearchTime(tech){ let sum = 0; for(const k in tech.cost) sum += tech.cost[k]; return Math.max(15, Math.min(120, 15 + sum * 0.15)); }
+function worldSpeedMultiplier(level){ return [0.5, 1, 2][clamp(Math.round(Number(level) || 0), 0, 2)]; }
 function getConstructionSpeedMult(){
   if(G.creative) return 100;
   let count = 0;
   for(const b of G.buildings){
     if(b.type === 'constructionOffice' && b.constructionT <= 0) count++;
   }
-  return Math.min(2.5, 1 + count * 0.25);
+  return worldSpeedMultiplier(selectedConstructionSpeedLevel) * Math.min(2.5, 1 + count * 0.25);
 }
 function getResearchSpeedMult(){
   const edu = (G.needs && G.needs.education) || 0;
-  return 1 + (edu / 100) * 1.5;
+  return (1 + (edu / 100) * 1.5) * worldSpeedMultiplier(selectedResearchSpeedLevel);
 }
 const cam = { x:0, y:0, zoom:1 };
 let ox = 0, oy = 0;
@@ -4461,7 +4517,9 @@ function update(dt){
   G.statTimer += dt;
   if(G.statTimer > 2){
     G.statTimer = 0;
-    G.stats.push({t:G.time, pop:countHumans(), food:G.res.food, wood:G.res.wood, stone:G.res.stone, gold:G.res.goldIngot, hap:G.happiness});
+    const gatheredSnapshot = {};
+    for(const [resourceKey] of RES_INFO) gatheredSnapshot[resourceKey] = G.totalGathered[resourceKey] || 0;
+    G.stats.push({t:G.time, pop:countHumans(), food:G.res.food, wood:G.res.wood, stone:G.res.stone, gold:G.res.goldIngot, hap:G.happiness, gathered:gatheredSnapshot});
     if(G.stats.length > 300) G.stats.shift();
   }
   G.checkTimer = (G.checkTimer || 0) + dt;
@@ -5302,6 +5360,44 @@ function drawMissileSilo(b,sx,sy,s){
   ctx.fillStyle='#566c79';ctx.fillRect(sx+w*.14,sy+h*.77,w*.72,h*.06);
   if(lod===2){const p=.7+.3*Math.sin(G.time*3);ctx.fillStyle=`rgba(255,65,45,${p})`;ctx.beginPath();ctx.arc(sx+w*.82,sy+h*.23,s*.035,0,Math.PI*2);ctx.fill();ctx.fillStyle='#75dce8';ctx.fillRect(sx+w*.22,sy+h*.79,w*.1,h*.025);ctx.fillRect(sx+w*.68,sy+h*.79,w*.1,h*.025);}
 }
+function drawPlatformBuilding(b, sx, sy, s){
+  const deployed = b.platformDeployed !== false;
+  const cx = sx+s/2, cy = sy+s/2;
+  ctx.save();
+  if(b.type === 'mobileBase'){
+    if(deployed){
+      ctx.fillStyle='#263847';ctx.fillRect(sx+s*.12,sy+s*.32,s*.76,s*.47);
+      ctx.fillStyle='#d6a34a';ctx.fillRect(sx+s*.2,sy+s*.22,s*.6,s*.18);
+      ctx.fillStyle='#8ed8e6';ctx.fillRect(sx+s*.43,sy+s*.08,s*.14,s*.15);
+      ctx.fillStyle='#101820';ctx.fillRect(sx+s*.18,sy+s*.72,s*.18,s*.13);ctx.fillRect(sx+s*.64,sy+s*.72,s*.18,s*.13);
+      ctx.strokeStyle='#8ed8e6';ctx.lineWidth=Math.max(1,s*.025);ctx.strokeRect(sx+s*.1,sy+s*.2,s*.8,s*.62);
+    }else{
+      ctx.fillStyle='#283b4d';ctx.fillRect(sx+s*.12,sy+s*.35,s*.76,s*.38);
+      ctx.fillStyle='#e0ae4f';ctx.fillRect(sx+s*.32,sy+s*.23,s*.38,s*.2);
+      ctx.fillStyle='#9fd3e2';ctx.fillRect(sx+s*.42,sy+s*.27,s*.17,s*.12);
+      ctx.fillStyle='#151b22';ctx.beginPath();ctx.arc(sx+s*.28,sy+s*.75,s*.1,0,Math.PI*2);ctx.arc(sx+s*.72,sy+s*.75,s*.1,0,Math.PI*2);ctx.fill();
+    }
+  }else if(b.type === 'shipBase'){
+    ctx.fillStyle=deployed?'#275a70':'#23495c';
+    ctx.beginPath();ctx.moveTo(sx+s*.08,sy+s*.5);ctx.lineTo(sx+s*.92,sy+s*.5);ctx.lineTo(sx+s*.76,sy+s*.82);ctx.lineTo(sx+s*.24,sy+s*.82);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#b7d3df';ctx.fillRect(sx+s*.3,sy+s*.32,s*.4,s*.18);
+    ctx.fillStyle=deployed?'#d8b15b':'#8eabb6';ctx.fillRect(sx+s*.42,sy+s*.18,s*.16,s*.14);
+    if(deployed){ctx.strokeStyle='#80d8ea';ctx.lineWidth=Math.max(1,s*.025);ctx.strokeRect(sx+s*.17,sy+s*.15,s*.66,s*.7);ctx.beginPath();ctx.moveTo(cx,sy+s*.07);ctx.lineTo(cx,sy+s*.18);ctx.stroke();}
+  }else{
+    if(deployed){
+      ctx.fillStyle='#322c55';ctx.fillRect(sx+s*.29,sy+s*.3,s*.42,s*.42);
+      ctx.fillStyle='#8b83e8';ctx.beginPath();ctx.moveTo(cx,sy+s*.16);ctx.lineTo(sx+s*.84,cy);ctx.lineTo(cx,sy+s*.84);ctx.lineTo(sx+s*.16,cy);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#b9f5ff';ctx.beginPath();ctx.arc(cx,cy,s*.09,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#91e7f5';ctx.lineWidth=Math.max(1,s*.025);ctx.strokeRect(sx+s*.11,sy+s*.11,s*.78,s*.78);
+    }else{
+      ctx.fillStyle='#3e3a65';ctx.beginPath();ctx.moveTo(cx,sy+s*.15);ctx.lineTo(sx+s*.78,cy);ctx.lineTo(cx,sy+s*.85);ctx.lineTo(sx+s*.22,cy);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#9befff';ctx.lineWidth=Math.max(1,s*.035);
+      for(const [rx,ry] of [[.16,.2],[.84,.2],[.16,.8],[.84,.8]]){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(sx+s*rx,sy+s*ry);ctx.stroke();ctx.beginPath();ctx.arc(sx+s*rx,sy+s*ry,s*.08,0,Math.PI*2);ctx.stroke();}
+      ctx.fillStyle='#bcf4ff';ctx.beginPath();ctx.arc(cx,cy,s*.09,0,Math.PI*2);ctx.fill();
+    }
+  }
+  ctx.restore();
+}
 function drawBuilding(b, sx, sy, s){
   const def = b.def;
   const bsz = (def && def.size) || 1;
@@ -5317,6 +5413,7 @@ function drawBuilding(b, sx, sy, s){
     ctx.fillStyle = '#7fc27f'; ctx.fillRect(sx + 4, sy + bh*0.88, (bw - 8) * pct, Math.max(3, s*0.1));
     return;
   }
+  if(def && def.platform){ drawPlatformBuilding(b,sx,sy,s); return; }
   // Potato mode deliberately overrides every bespoke sprite with the same compact LOD0 silhouette.
   // Weak-device mode also enters silhouettes sooner than Normal, before detailed special sprites are drawn.
   if(SETTINGS.graphics === 'potato' || (SETTINGS.graphics === 'weak' && lod === 0)){
@@ -6511,6 +6608,16 @@ function render(){
     ctx.fillStyle = 'rgba(120,200,255,.15)'; ctx.fillRect(bx, by, bw, bh);
     ctx.strokeStyle = 'rgba(120,200,255,.85)'; ctx.lineWidth = 1.5; ctx.strokeRect(bx, by, bw, bh);
   }
+  // Строительные зоны поселения и мобильных форпостов подсвечиваются только в режиме строительства.
+  if(G.build || movingPlatform || (G.sel && G.sel.def && G.sel.def.platform)) drawBuildZonesOverlay();
+  if(movingPlatform && G.mouse.inside){
+    const tx=Math.floor((G.mouse.x-ox)/(TS*z)), ty=Math.floor((G.mouse.y-oy)/(TS*z));
+    if(tx>=0&&ty>=0&&tx<MW&&ty<MH){
+      const ok=canMovePlatformTo(movingPlatform.building,tx,ty);
+      ctx.fillStyle=ok?'rgba(90,220,120,.32)':'rgba(230,80,80,.32)';ctx.fillRect(tx*TS*z+ox,ty*TS*z+oy,TS*z,TS*z);
+      ctx.strokeStyle=ok?'#7fe08a':'#e05a5a';ctx.lineWidth=2;ctx.strokeRect(tx*TS*z+ox+1,ty*TS*z+oy+1,TS*z-2,TS*z-2);
+    }
+  }
   // Build preview
   if(G.build && G.mouse.inside){
     const [wx,wy] = screenToWorld(G.mouse.x, G.mouse.y);
@@ -6550,10 +6657,38 @@ function buildingAt(tx,ty){
   for(const gb of G.goblinBuildings) if(gb.tx===tx && gb.ty===ty) return gb;
   return null;
 }
+function isMiningType(type){ return ['mine','drill','electricMine','uraniumDrill'].includes(type); }
+function getBuildZoneRadius(b){
+  if(!b || b.constructionT > 0) return 0;
+  if(b.def && b.def.platform) return b.platformDeployed === false ? 0 : (b.def.zoneRadius || BUILD_ZONE_RADIUS);
+  return BUILD_ZONE_RADIUS;
+}
+function isTileInsideBuildZone(tx, ty){
+  if(!G.gameStarted || G.creative) return true;
+  for(const b of G.buildings){
+    const radius = getBuildZoneRadius(b); if(radius <= 0) continue;
+    const bx = Number.isFinite(b.px) ? b.px/TS : b.tx + ((b.def && b.def.size || 1)-1)/2 + 0.5;
+    const by = Number.isFinite(b.py) ? b.py/TS : b.ty + ((b.def && b.def.size || 1)-1)/2 + 0.5;
+    if(Math.hypot((tx+0.5)-bx,(ty+0.5)-by) <= radius) return true;
+  }
+  // Roads can extend the construction network, but only a short distance at a time.
+  for(let y=Math.max(0,ty-BUILD_ZONE_ROAD_RADIUS);y<=Math.min(MH-1,ty+BUILD_ZONE_ROAD_RADIUS);y++){
+    for(let x=Math.max(0,tx-BUILD_ZONE_ROAD_RADIUS);x<=Math.min(MW-1,tx+BUILD_ZONE_ROAD_RADIUS);x++){
+      if(roadGrid[y] && roadGrid[y][x] && Math.hypot((tx-x),(ty-y)) <= BUILD_ZONE_ROAD_RADIUS) return true;
+    }
+  }
+  return false;
+}
+function isBuildFootprintInZone(type, tx, ty, size){
+  if(isMiningType(type) || G.creative || !G.gameStarted) return true;
+  for(let dy=0;dy<size;dy++) for(let dx=0;dx<size;dx++) if(!isTileInsideBuildZone(tx+dx,ty+dy)) return false;
+  return true;
+}
 function canPlace(type, tx, ty){
   if(type && type.startsWith('spawn_')) return tx>=0 && ty>=0 && tx<MW && ty<MH;
   const def = BUILDINGS[type];
   const sz = (def && def.size) || 1;
+  if(!isBuildFootprintInZone(type,tx,ty,sz)) return false;
   if (sz > 1 && def && (def.waterOnly || def.coastal || def.onDeposit || def.onUranium)) return false;
   for(let dy=0;dy<sz;dy++) for(let dx=0;dx<sz;dx++){
     const x = tx+dx, y = ty+dy;
@@ -6569,7 +6704,25 @@ function canPlace(type, tx, ty){
       if(tt !== 'water' || buildingAt(x,y) || roadGrid[y][x]) return false;
       continue;
     }
-    if(def && def.waterOnly){ if(tt !== 'water') return false; if(buildingAt(x,y) || roadGrid[y][x]) return false; continue; }
+    if(def && def.waterOnly){
+      if(tt !== 'water') return false;
+      if(buildingAt(x,y) || roadGrid[y][x]) return false;
+      if(def.coastalPlatform){
+        let hasLand = false;
+        for(const [ddx,ddy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nx=x+ddx, ny=y+ddy;
+          if(nx>=0&&ny>=0&&nx<MW&&ny<MH&&terrain[ny][nx].t!=='water'){ hasLand=true; break; }
+        }
+        if(!hasLand) return false;
+      }
+      continue;
+    }
+    if(def && def.anyTerrain){
+      if(buildingAt(x,y) || roadGrid[y][x]) return false;
+      const specialNode = nodes[y] && nodes[y][x];
+      if(specialNode && (specialNode.type==='tree' || specialNode.type==='rock' || isDeposit(specialNode.type))) return false;
+      continue;
+    }
     if(tt === 'water' || tt === 'mountain') return false;
     if(buildingAt(x,y) || roadGrid[y][x]) return false;
     if(def && def.onUranium){ const n = nodes[y][x]; if(!(n && n.type === 'uraniumOreD')) return false; continue; }
@@ -6652,6 +6805,7 @@ function tryPlace(type, tx, ty){
   const sz = (def && def.size) || 1;
   const b = { type, def, tx, ty, px: tx*TS+TS/2 + (sz-1)*TS/2, py: ty*TS+TS/2 + (sz-1)*TS/2, workers: [], deposit: null, constructionT: getBuildTime(type) };
   b.hp = (def && def.hp) || 200; b.maxHp = b.hp;
+  if(def && def.platform) b.platformDeployed = true;
   if(type === 'uraniumDrill') b.uraniumRemaining = 5000;
   const n = nodes[ty][tx];
   if(n && isDeposit(n.type)) b.deposit = n.type;
@@ -6670,6 +6824,140 @@ function tryPlace(type, tx, ty){
   renderMiniBg();
   invalidatePathCache();
   return true;
+}
+function canMovePlatformTo(b, tx, ty){
+  if(!b || !b.def || !b.def.platform || tx<1 || ty<1 || tx>=MW-1 || ty>=MH-1) return false;
+  const tt=terrain[ty] && terrain[ty][tx] && terrain[ty][tx].t;
+  if(b.def.platform==='land' && (tt==='water'||tt==='mountain')) return false;
+  if(b.def.platform==='water'){
+    if(tt!=='water') return false;
+    let nearLand=false;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=tx+dx,y=ty+dy;if(x>=0&&y>=0&&x<MW&&y<MH&&terrain[y][x].t!=='water'){nearLand=true;break;}}
+    if(!nearLand) return false;
+  }
+  for(const other of G.buildings){
+    if(other===b) continue;
+    const size=(other.def&&other.def.size)||1;
+    if(tx>=other.tx&&tx<other.tx+size&&ty>=other.ty&&ty<other.ty+size) return false;
+  }
+  if(G.goblinBuildings.some(gb=>gb.tx===tx&&gb.ty===ty)) return false;
+  if(roadGrid[ty]&&roadGrid[ty][tx]) return false;
+  const n=nodes[ty]&&nodes[ty][tx];
+  if(n&&(n.type==='tree'||n.type==='rock'||isDeposit(n.type))) return false;
+  return true;
+}
+function togglePlatform(tx,ty){
+  const b=G.buildings.find(x=>x.tx===Number(tx)&&x.ty===Number(ty)&&x.def&&x.def.platform);
+  if(!b||b.constructionT>0) return;
+  b.platformDeployed=b.platformDeployed===false;
+  toast(b.platformDeployed?'🗼 Форпост развернул строительную башню':'🚚 Форпост свёрнут; зона строительства отключена');
+  SND.click();G.sel=b;G.selectedUnits=[];updateInfoUI();
+}
+function beginPlatformMove(tx,ty){
+  const b=G.buildings.find(x=>x.tx===Number(tx)&&x.ty===Number(ty)&&x.def&&x.def.platform);
+  if(!b||b.constructionT>0) return;
+  movingPlatform={building:b,wasDeployed:b.platformDeployed!==false};
+  G.build=null;G.sel=null;G.selectedUnits=[];infoEl.classList.remove('open');
+  toast(b.type==='droneBase'?'🛸 Выберите клетку назначения для дрона':'Выберите новую клетку для форпоста');
+  refreshBuildUI();
+}
+window.togglePlatform=togglePlatform;window.beginPlatformMove=beginPlatformMove;
+// Cached union of the construction-radius circles. The fills are composited once,
+// and only arcs on the outer boundary are stroked: overlapping ranges no longer
+// create a stack of circles or become brighter as the settlement grows.
+let buildZoneUnionCache = { key: '', fillPath: null, borderPath: null, count: 0 };
+function buildZonePaths(circles){
+  const TAU=Math.PI*2;
+  const fillPath=new Path2D();
+  const borderPath=new Path2D();
+  for(let i=0;i<circles.length;i++){
+    const c=circles[i];
+    fillPath.moveTo(c.x+c.r,c.y);
+    fillPath.arc(c.x,c.y,c.r,0,TAU,false);
+    fillPath.closePath();
+  }
+  for(let i=0;i<circles.length;i++){
+    const c=circles[i];
+    let intervals=[];
+    let fullyCovered=false;
+    for(let j=0;j<circles.length;j++){
+      if(i===j) continue;
+      const o=circles[j],dx=o.x-c.x,dy=o.y-c.y;
+      const d=Math.hypot(dx,dy),sum=c.r+o.r,diff=Math.abs(c.r-o.r);
+      if(d>=sum-0.001) continue;
+      if(d<0.001){
+        if(o.r>=c.r-0.001 && j<i){ fullyCovered=true; break; }
+        continue;
+      }
+      if(d<=diff+0.001){
+        if(o.r>=c.r){ fullyCovered=true; break; }
+        continue; // o is wholly inside c; it does not hide c's outline.
+      }
+      const angle=(Math.atan2(dy,dx)+TAU)%TAU;
+      const ratio=Math.max(-1,Math.min(1,(d*d+c.r*c.r-o.r*o.r)/(2*d*c.r)));
+      const alpha=Math.acos(ratio);
+      let a=angle-alpha,b=angle+alpha;
+      if(a<0){intervals.push([0,b],[a+TAU,TAU]);}
+      else if(b>TAU){intervals.push([a,TAU],[0,b-TAU]);}
+      else intervals.push([a,b]);
+    }
+    if(fullyCovered) continue;
+    intervals.sort((a,b)=>a[0]-b[0]);
+    const merged=[];
+    for(const iv of intervals){
+      const last=merged[merged.length-1];
+      if(last && iv[0]<=last[1]+1e-5) last[1]=Math.max(last[1],iv[1]);
+      else merged.push([iv[0],iv[1]]);
+    }
+    let cursor=0;
+    const addArc=(a,b)=>{
+      if(b-a<1e-5) return;
+      borderPath.moveTo(c.x+c.r*Math.cos(a),c.y+c.r*Math.sin(a));
+      borderPath.arc(c.x,c.y,c.r,a,b,false);
+    };
+    for(const iv of merged){
+      if(iv[0]>cursor+1e-5) addArc(cursor,iv[0]);
+      cursor=Math.max(cursor,iv[1]);
+    }
+    if(cursor<TAU-1e-5) addArc(cursor,TAU);
+  }
+  return {fillPath,borderPath};
+}
+function drawBuildZonesOverlay(){
+  if(typeof Path2D==='undefined') return;
+  const selectedPlatform=G.sel&&G.sel.def&&G.sel.def.platform?G.sel:null;
+  const focusOnly=!!(selectedPlatform && !G.build && !movingPlatform);
+  const circles=[];
+  for(const b of G.buildings){
+    if(b.constructionT>0) continue;
+    if(focusOnly && b!==selectedPlatform) continue;
+    const radius=getBuildZoneRadius(b);
+    if(radius<=0) continue;
+    const x=Number.isFinite(b.px)?b.px:(b.tx+((b.def&&b.def.size||1)-1)/2+0.5)*TS;
+    const y=Number.isFinite(b.py)?b.py:(b.ty+((b.def&&b.def.size||1)-1)/2+0.5)*TS;
+    circles.push({x,y,r:radius*TS});
+  }
+  if(!circles.length) return;
+  const key=(focusOnly?'focused':'network')+'|'+circles.map(c=>c.x.toFixed(2)+','+c.y.toFixed(2)+','+c.r.toFixed(2)).join(';');
+  if(key!==buildZoneUnionCache.key){
+    const paths=buildZonePaths(circles);
+    buildZoneUnionCache={key,fillPath:paths.fillPath,borderPath:paths.borderPath,count:circles.length};
+  }
+  // One shared pulse and one animated dashed contour for the complete union.
+  const pulse=0.030+0.009*(0.5+0.5*Math.sin((G.time||0)*1.45));
+  ctx.save();
+  ctx.translate(ox,oy);
+  ctx.scale(z,z);
+  ctx.fillStyle=`rgba(82,151,218,${pulse})`;
+  ctx.fill(buildZoneUnionCache.fillPath);
+  ctx.strokeStyle=`rgba(112,196,239,${0.53+0.10*Math.sin((G.time||0)*1.2)})`;
+  ctx.lineWidth=Math.max(1/z,1.15);
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.setLineDash([6/z,5/z]);
+  ctx.lineDashOffset=-((G.time||0)*13)/z;
+  ctx.stroke(buildZoneUnionCache.borderPath);
+  ctx.restore();
 }
 function demolishBuilding(b, noRefund){
   const idx = G.buildings.indexOf(b);
@@ -7337,6 +7625,13 @@ function updateInfoUI(){
     }
     if(b.type === 'dock') html += `<br><button class="sm" onclick="spawnExtraBoat()">Лодка (${G.creative?'∞':'30 дер'})</button>`;
     if(b.type === 'helipad') html += `<br><button class="sm" onclick="spawnExtraHeli()">Вертолёт (${G.creative?'∞':'20 досок, 15 железа'})</button>`;
+    if(b.def.platform && b.constructionT <= 0){
+      const deployed=b.platformDeployed!==false;
+      const zoneRadius=b.def.zoneRadius||BUILD_ZONE_RADIUS;
+      html += `<div class="wlist"><div style="color:${deployed?'#7fc27f':'#d8b45e'}">${deployed?'🗼 Башня развёрнута':'🚚 Форпост свёрнут'} • ${deployed?`зона ${zoneRadius} клеток`:'зона отключена'}</div>`;
+      html += `<button class="sm" onclick="togglePlatform(${b.tx},${b.ty})">${deployed?'↘ Свернуть башню':'↗ Развернуть башню'}</button>`;
+      html += `<button class="sm" onclick="beginPlatformMove(${b.tx},${b.ty})">🚚 Переместить</button></div>`;
+    }
     if(b.type !== 'townHall') html += `<br><button class="del" onclick="demolishSelected()">🗑 Снести</button>`;
     else html += `<br><span style="color:#e08a7a;font-size:11px">⚠ Ратушу нельзя снести</span>`;
   }
@@ -7459,34 +7754,55 @@ window.loadSelectedTransport = loadSelectedTransport;
 window.unloadSelectedTransport = unloadSelectedTransport;
 function openStats(){ SND.click(); document.getElementById('statsmodal').classList.add('open'); applyUIScale(); drawStats(); }
 function drawStats(){
-  const c = document.getElementById('statscanvas');
-  const cx2 = c.getContext('2d');
-  const w = c.width, h = c.height;
-  cx2.fillStyle = '#0e1420'; cx2.fillRect(0, 0, w, h);
-  cx2.strokeStyle = '#1e2a3a'; cx2.lineWidth = 1;
-  for(let i = 1; i < 5; i++){ cx2.beginPath(); cx2.moveTo(40, i * h/5); cx2.lineTo(w - 20, i * h/5); cx2.stroke(); }
-  let maxPop = 1, maxFood = 1, maxWood = 1, maxStone = 1, maxGold = 1;
-  for(const s of G.stats){ if(s.pop > maxPop) maxPop = s.pop; if(s.food > maxFood) maxFood = s.food; if(s.wood > maxWood) maxWood = s.wood; if(s.stone > maxStone) maxStone = s.stone; if(s.gold > maxGold) maxGold = s.gold; }
-  const series = [
-    {data:G.stats.map(s=>s.pop),color:'#7fe08a',max:maxPop*1.2,label:'Население'},
-    {data:G.stats.map(s=>s.food),color:'#d8a33c',max:maxFood*1.2,label:'Еда'},
-    {data:G.stats.map(s=>s.wood),color:'#7a5230',max:maxWood*1.2,label:'Дерево'},
-    {data:G.stats.map(s=>s.stone),color:'#9aa0a6',max:maxStone*1.2,label:'Камень'},
-    {data:G.stats.map(s=>s.gold),color:'#e6c341',max:maxGold*1.2,label:'Золото'},
-    {data:G.stats.map(s=>s.hap),color:'#6fa4e2',max:100,label:'Счастье'},
-  ];
-  const n = G.stats.length;
-  if(n < 2){ cx2.fillStyle = '#6c8098'; cx2.font = '14px sans-serif'; cx2.textAlign = 'center'; cx2.textBaseline = 'middle'; cx2.fillText('Собираем данные...', w/2, h/2); return; }
-  const padL = 50, padR = 20, padT = 20, padB = 30;
-  const plotW = w - padL - padR, plotH = h - padT - padB;
-  for(const s of series){
-    cx2.strokeStyle = s.color; cx2.lineWidth = 2; cx2.beginPath();
-    for(let i = 0; i < n; i++){ const x = padL + (i / (n-1)) * plotW; const y = padT + plotH - (s.data[i] / s.max) * plotH; if(i === 0) cx2.moveTo(x, y); else cx2.lineTo(x, y); }
+  const c=document.getElementById('statscanvas');
+  const cx2=c.getContext('2d');
+  const w=c.width,h=c.height;
+  const select=document.getElementById('statsmetric');
+  if(select && !select.dataset.ready){
+    select.innerHTML='<option value="all">Все ресурсы · сравнение динамики</option>'+RES_INFO.map(([key,name])=>`<option value="${key}">${name}</option>`).join('');
+    select.dataset.ready='1';
+  }
+  const metric=select?select.value:'all';
+  cx2.fillStyle='#0e1420';cx2.fillRect(0,0,w,h);
+  const padL=58,padR=18,padT=24,padB=36,plotW=w-padL-padR,plotH=h-padT-padB;
+  cx2.strokeStyle='#1e2a3a';cx2.lineWidth=1;cx2.font='10px sans-serif';cx2.textAlign='right';cx2.textBaseline='middle';
+  for(let i=0;i<=4;i++){
+    const y=padT+plotH*i/4;cx2.beginPath();cx2.moveTo(padL,y);cx2.lineTo(w-padR,y);cx2.stroke();
+    cx2.fillStyle='#75869b';cx2.fillText(metric==='all'?`${100-i*25}%`:String(Math.round((chartMaxValue(metric,G.stats)||1)*(1-i/4))),padL-8,y);
+  }
+  cx2.strokeStyle='#34455a';cx2.beginPath();cx2.moveTo(padL,padT);cx2.lineTo(padL,padT+plotH);cx2.lineTo(w-padR,padT+plotH);cx2.stroke();
+  const n=G.stats.length;
+  const legend=document.getElementById('statslegend');
+  const picked=metric==='all'?RES_INFO.map(([key,name,color])=>({key,label:name,color,normalized:true})):RES_INFO.filter(([key])=>key===metric).map(([key,name,color])=>({key,label:name,color,normalized:false}));
+  if(legend) legend.innerHTML=picked.map(item=>`<span class="stats-legend-item"><span class="stats-legend-dot" style="background:${item.color}"></span>${item.label}</span>`).join('');
+  if(n<2){
+    cx2.fillStyle='#6c8098';cx2.font='14px sans-serif';cx2.textAlign='center';cx2.textBaseline='middle';cx2.fillText('Собираем историю сбора ресурсов…',w/2,h/2);
+    return;
+  }
+  cx2.font='10px sans-serif';cx2.fillStyle='#75869b';cx2.textAlign='center';cx2.textBaseline='top';
+  for(let i=0;i<=4;i++){const index=Math.round((n-1)*i/4);const x=padL+index/(n-1)*plotW;cx2.fillText(`-${n-1-index}`,x,padT+plotH+9);}
+  for(const item of picked){
+    const values=G.stats.map(s=>(s.gathered&&Number.isFinite(s.gathered[item.key]))?s.gathered[item.key]:0);
+    const max= Math.max(1,...values);
+    cx2.strokeStyle=item.color;cx2.lineWidth=1.8;cx2.beginPath();
+    for(let i=0;i<n;i++){
+      const x=padL+i/(n-1)*plotW;
+      const raw=item.normalized?values[i]/max:values[i]/max;
+      const y=padT+plotH-raw*plotH;
+      if(i===0)cx2.moveTo(x,y);else cx2.lineTo(x,y);
+    }
     cx2.stroke();
   }
-  cx2.font = '12px sans-serif'; cx2.textAlign = 'left'; cx2.textBaseline = 'alphabetic';
-  let ly = padT + 14;
-  for(const s of series){ cx2.fillStyle = s.color; cx2.fillRect(w - 130, ly - 8, 10, 10); cx2.fillStyle = '#e8eef7'; cx2.fillText(s.label, w - 115, ly); ly += 18; }
+  if(metric!=='all'){
+    const vals=G.stats.map(s=>(s.gathered&&Number.isFinite(s.gathered[metric]))?s.gathered[metric]:0);
+    const last=vals[vals.length-1]||0;
+    cx2.fillStyle='#e8eef7';cx2.font='bold 12px sans-serif';cx2.textAlign='left';cx2.textBaseline='top';
+    cx2.fillText(`Собрано всего: ${Math.floor(last).toLocaleString('ru-RU')}`,padL,padT+4);
+  }
+}
+function chartMaxValue(metric, history){
+  const values=(history||[]).map(s=>(s.gathered&&Number.isFinite(s.gathered[metric]))?s.gathered[metric]:0);
+  return Math.max(1,...values);
 }
 function renderAchievements(){
   const el = document.getElementById('achlist');
@@ -7514,6 +7830,7 @@ function renderSettings(){
     <div class="setting-row"><label>📏 Размер миникарты</label><select onchange="setSetting('minimapSize', this.value)"><option value="small" ${SETTINGS.minimapSize==='small'?'selected':''}>Маленькая</option><option value="medium" ${SETTINGS.minimapSize==='medium'?'selected':''}>Средняя</option><option value="large" ${SETTINGS.minimapSize==='large'?'selected':''}>Большая</option></select></div>
     <div class="setting-row"><label>📋 Журнал</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.log?'checked':''} onchange="setSetting('log', this.checked)"><span class="toggle-slider"></span></label></div>
     <div class="setting-row"><label>💡 Подсказки</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.hints?'checked':''} onchange="setSetting('hints', this.checked)"><span class="toggle-slider"></span></label></div>
+    <div class="setting-row"><label>🖱 Прокрутка камеры у края экрана</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.edgeScroll?'checked':''} onchange="setSetting('edgeScroll', this.checked)"><span class="toggle-slider"></span></label></div>
     <div class="setting-row"><label>📈 FPS</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.fps?'checked':''} onchange="setSetting('fps', this.checked)"><span class="toggle-slider"></span></label></div>
     <div class="settings-section">Звук</div>
     <div class="setting-row"><label>🔊 Звуки</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.sound?'checked':''} onchange="setSetting('sound', this.checked)"><span class="toggle-slider"></span></label></div>
@@ -7547,8 +7864,8 @@ function applySettings(){
   if(!SETTINGS.particles) G.particles = [];
 }
 const SAVE_KEY = 'citysim_v13_';
-// Keep v13 storage compatibility so existing local saves remain loadable across v43.
-const GAME_VERSION = 'v43';
+// Keep v13 storage compatibility so existing local saves remain loadable across v44.
+const GAME_VERSION = 'v45';
 const SAVE_VERSION = 13; // Preserve v13 save compatibility for existing worlds
 function validateSaveData(data){
   if(!data || typeof data !== 'object' || data.version !== SAVE_VERSION) return false;
@@ -7616,6 +7933,7 @@ function buildSaveData(){
   return {
     version: SAVE_VERSION, gameVersion: GAME_VERSION, mapSize, terrainType, mode: G.mode, mapSeed,
     resourceDensity: G.resourceDensity ?? selectedResourceDensity, goblinSpawnLevel: G.goblinSpawnLevel ?? selectedGoblinSpawn, ambientGoblinTimer: G.ambientGoblinTimer || 0,
+    researchSpeedLevel: selectedResearchSpeedLevel, constructionSpeedLevel: selectedConstructionSpeedLevel,
     wave: G.wave, waveTimer: G.waveTimer, fogEnabled: G.fogEnabled, dayNightEnabled: G.dayNightEnabled,
     warVictoryShown: G.warVictoryShown, legendsShown: G.legendsShown,
     totalGathered: {...G.totalGathered}, civilianDeaths: G.civilianDeaths, totalKills: G.totalKills,
@@ -7633,7 +7951,7 @@ function buildSaveData(){
     townHallTx: G.townHall ? G.townHall.tx : -1, townHallTy: G.townHall ? G.townHall.ty : -1,
     research: G.research,
     diplomacy: G.diplomacy ? JSON.parse(JSON.stringify(G.diplomacy)) : null,
-    buildings: G.buildings.map(b => ({ type: b.type, tx: b.tx, ty: b.ty, deposit: b.deposit, hp: b.hp, maxHp: b.maxHp, constructionT: b.constructionT || 0, workerIds: b.workers.map(w => w.id), spawnT: b.spawnT || 0, rallyPoint: b.rallyPoint, uraniumRemaining: b.uraniumRemaining, noFuelTimer: b.noFuelTimer })),
+    buildings: G.buildings.map(b => ({ type: b.type, tx: b.tx, ty: b.ty, deposit: b.deposit, hp: b.hp, maxHp: b.maxHp, constructionT: b.constructionT || 0, workerIds: b.workers.map(w => w.id), spawnT: b.spawnT || 0, rallyPoint: b.rallyPoint, uraniumRemaining: b.uraniumRemaining, noFuelTimer: b.noFuelTimer, platformDeployed: b.platformDeployed !== false })),
     goblinBuildings: G.goblinBuildings.map(gb => ({ type: gb.type, tx: gb.tx, ty: gb.ty, hp: gb.hp, maxHp: gb.maxHp, attackT: gb.attackT, spawnT: gb.spawnT, ownerBaseId: gb.ownerBaseId })),
     units: G.units.map(u => ({ id: u.id, x: u.x, y: u.y, robot: u.robot, drone: u.drone, state: u.state, soldierType: u.soldierType, hp: u.hp, isRepairDrone: u.isRepairDrone, lastDamageT: u.lastDamageT, cloth: u.cloth, skin: u.skin, width: u.width, manual: u.manual, combatMode: u.combatMode, guardPos: u.guardPos, airState: u.airState, airAmmo: u.airAmmo, airMaxAmmo: u.airMaxAmmo, airReloadT: u.airReloadT, airOrbitAngle: u.airOrbitAngle, airHomeX: u.airHomeX, airHomeY: u.airHomeY, jobTx: u.job ? u.job.tx : -1, jobTy: u.job ? u.job.ty : -1, barracksTx: u.barracks ? u.barracks.tx : -1, barracksTy: u.barracks ? u.barracks.ty : -1, carry: u.carry, carryAmt: u.carryAmt, timer: u.timer, idleT: u.idleT, targetTx: u.target ? u.target.tx : -1, targetTy: u.target ? u.target.ty : -1, inBoatIdx: u.inBoat ? G.boats.indexOf(u.inBoat) : -1, inHeliIdx: u.inHeli ? G.helis.indexOf(u.inHeli) : -1, hubIdx: u.hub ? G.buildings.indexOf(u.hub) : -1, mvx: u.mvx, mvy: u.mvy, waypoints: u.waypoints || [] })),
     boats: G.boats.map(bo => ({ x: bo.x, y: bo.y, state: bo.state, target: bo.target, autoMode: bo.autoMode !== false, hp: bo.hp, passengerIds: bo.passengers.map(p => p.id) })),
@@ -7669,6 +7987,8 @@ function applySaveData(data){
     G.totalGathered = {...(data.totalGathered||{})}; G.totalTrades = data.totalTrades || 0;
     G.difficulty = data.difficulty || 'normal'; G.creative = !!data.creative; G.mode = data.mode || 'normal';
     selectedResourceDensity=clamp(Math.floor(data.resourceDensity ?? selectedResourceDensity),0,3); selectedGoblinSpawn=clamp(Math.floor(data.goblinSpawnLevel ?? selectedGoblinSpawn),0,3);
+    selectedResearchSpeedLevel=clamp(Math.floor(data.researchSpeedLevel ?? 1),0,2);
+    selectedConstructionSpeedLevel=clamp(Math.floor(data.constructionSpeedLevel ?? 1),0,2);
     G.resourceDensity=selectedResourceDensity;G.goblinSpawnLevel=selectedGoblinSpawn;G.ambientGoblinTimer=data.ambientGoblinTimer||0;
     if(G.creative) for(const tech of TECHS) G.techs[tech.id] = true;
     G.wave = data.wave ?? 0; G.waveTimer = data.waveTimer ?? 0;
@@ -7688,7 +8008,7 @@ function applySaveData(data){
     if(!G.diplomacy) initDiplomacy();
     G.buildings = data.buildings.map(bd => {
       const bsz = (BUILDINGS[bd.type] && BUILDINGS[bd.type].size) || 1;
-      return { type: bd.type, def: BUILDINGS[bd.type], tx: bd.tx, ty: bd.ty, px: bd.tx*TS+TS/2 + (bsz-1)*TS/2, py: bd.ty*TS+TS/2 + (bsz-1)*TS/2, workers: [], deposit: bd.deposit, constructionT: bd.constructionT || 0, spawnT: bd.spawnT || 0, hp: bd.hp, maxHp: bd.maxHp, rallyPoint: bd.rallyPoint || null, uraniumRemaining: bd.uraniumRemaining, noFuelTimer: bd.noFuelTimer };
+      return { type: bd.type, def: BUILDINGS[bd.type], tx: bd.tx, ty: bd.ty, px: bd.tx*TS+TS/2 + (bsz-1)*TS/2, py: bd.ty*TS+TS/2 + (bsz-1)*TS/2, workers: [], deposit: bd.deposit, constructionT: bd.constructionT || 0, spawnT: bd.spawnT || 0, hp: bd.hp, maxHp: bd.maxHp, rallyPoint: bd.rallyPoint || null, uraniumRemaining: bd.uraniumRemaining, noFuelTimer: bd.noFuelTimer, platformDeployed: bd.platformDeployed !== false };
     });
     G.townHall = null;
     if(data.townHallTx >= 0) G.townHall = G.buildings.find(b => b.tx === data.townHallTx && b.ty === data.townHallTy) || null;
@@ -7908,6 +8228,8 @@ window.shareSeed = async () => {
   url.searchParams.set('dayNight', selectedDayNight ? '1' : '0');
   url.searchParams.set('resources', String(selectedResourceDensity));
   url.searchParams.set('goblins', String(selectedGoblinSpawn));
+  url.searchParams.set('researchSpeed', String(selectedResearchSpeedLevel));
+  url.searchParams.set('constructionSpeed', String(selectedConstructionSpeedLevel));
   try {
     await navigator.clipboard.writeText(url.toString());
     toast(t('copied') + ': ' + url.toString());
@@ -7917,12 +8239,415 @@ window.shareSeed = async () => {
     catch(_) { toast('URL: ' + url.toString()); }
   }
 };
+
+window.selectResearchSpeed = (value) => {
+  selectedResearchSpeedLevel = clamp(Math.floor(Number(value) || 0), 0, 2);
+  const el = document.getElementById('research-speed-value');
+  if(el) el.textContent = ['×0.5','×1.0','×2.0'][selectedResearchSpeedLevel];
+};
+window.selectConstructionSpeed = (value) => {
+  selectedConstructionSpeedLevel = clamp(Math.floor(Number(value) || 0), 0, 2);
+  const el = document.getElementById('construction-speed-value');
+  if(el) el.textContent = ['×0.5','×1.0','×2.0'][selectedConstructionSpeedLevel];
+};
+// Multiplayer session state. Keeping this separate from the regular single-player state
+// ensures the experimental networking layer is inert when no room is connected.
+const MP = {
+  role: null,
+  id: null,
+  name: '',
+  baseUrl: '',
+  roomCode: '',
+  timer: null,
+  busy: false,
+  applying: false,
+  lastRevision: 0,
+  lastPublishAt: 0,
+  joined: false,
+  lastProposalAt: 0,
+  proposalTimer: null,
+  worldStarted: false,
+  lobbySettings: null
+};
+
+const MULTIPLAYER_SERVER_SOURCE = "/*\n * Поселение v46.1 — сервер экспериментального мультиплеера (исправление входа).\n * BUILD: v46.1-joinfix (missing room-code reader fixed; lobby settings retained).\n * Совместимость: Node.js 10+ (для старых систем не используется префикс node:).\n * Запуск: node server.js\n * Положите этот файл рядом с HTML-файлом игры, например «Поселение v45.html».\n */\n'use strict';\n\nconst http = require('http');\nconst fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\nconst os = require('os');\nconst URL = require('url').URL;\n\nconst requestedPort = Number(process.env.PORT || 3000);\nconst PORT = Number.isInteger(requestedPort) && requestedPort >= 1 && requestedPort <= 65535 ? requestedPort : 3000;\nconst HOST = process.env.HOST || '0.0.0.0';\nconst MAX_BODY_BYTES = 32 * 1024 * 1024;\nconst MAX_PLAYERS = 8;\nconst HOST_TIMEOUT_MS = 45000;\nconst GUEST_TIMEOUT_MS = 30000;\nconst MAX_REQUESTS_PER_MINUTE = 900;\nconst PROTOCOL_VERSION = 3;\n\nconst players = new Map();\nconst proposals = new Map();\nconst rateWindows = new Map();\nlet hostId = null;\nlet roomCode = null;\nlet hostLastSeen = 0;\nlet sharedState = null;\nlet revision = 0;\nlet proposalSequence = 0;\nlet started = false;\nlet roomSettings = defaultRoomSettings();\nlet shuttingDown = false;\n\nfunction makeId() {\n  // crypto.randomUUID() появился значительно позже старых Node.js из дистрибутивов Linux.\n  return crypto.randomBytes(16).toString('hex');\n}\n\nfunction makeRoomCode() {\n  return crypto.randomBytes(3).toString('hex').toUpperCase();\n}\n\nfunction cleanName(value) {\n  return String(value || 'Игрок')\n    .replace(/[<>\\u0000-\\u001f\\u007f]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 24) || 'Игрок';\n}\n\nfunction json(res, status, payload, extraHeaders) {\n  if (res.finished || res.destroyed) return;\n  const body = JSON.stringify(payload);\n  res.writeHead(status, Object.assign({\n    'Content-Type': 'application/json; charset=utf-8',\n    'Content-Length': Buffer.byteLength(body),\n    'Cache-Control': 'no-store',\n    'X-Content-Type-Options': 'nosniff',\n    'Referrer-Policy': 'no-referrer'\n  }, extraHeaders || {}));\n  res.end(body);\n}\n\nfunction plain(res, status, message) {\n  if (res.finished || res.destroyed) return;\n  res.writeHead(status, {\n    'Content-Type': 'text/plain; charset=utf-8',\n    'Content-Length': Buffer.byteLength(message),\n    'Cache-Control': 'no-store',\n    'X-Content-Type-Options': 'nosniff'\n  });\n  res.end(message);\n}\n\nfunction applyCors(req, res) {\n  const origin = req.headers.origin;\n  // The game is intended for a private LAN. File:// clients send Origin: null.\n  // CORS is only necessary for these direct-file/alternate-origin setups.\n  if (!origin || origin === 'null' || /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/i.test(origin) || origin === 'http://' + (req.headers.host || '')) {\n    res.setHeader('Access-Control-Allow-Origin', origin || '*');\n  } else {\n    // The host page is normally served from this same server; LAN users should open\n    // the printed host URL, not a separate copy of the HTML file.\n    res.setHeader('Access-Control-Allow-Origin', origin);\n  }\n  res.setHeader('Vary', 'Origin');\n  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');\n  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Room-Code');\n  res.setHeader('Access-Control-Max-Age', '600');\n}\n\nfunction readJsonBody(req) {\n  return new Promise(function (resolve, reject) {\n    const chunks = [];\n    let size = 0;\n    let tooLarge = false;\n    req.on('data', function (chunk) {\n      size += chunk.length;\n      if (size > MAX_BODY_BYTES) {\n        tooLarge = true;\n        chunks.length = 0;\n        return;\n      }\n      if (!tooLarge) chunks.push(chunk);\n    });\n    req.on('end', function () {\n      if (tooLarge) return reject(Object.assign(new Error('Тело запроса превышает 32 МБ'), { statusCode: 413 }));\n      if (!chunks.length) return resolve({});\n      let parsed;\n      try { parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')); }\n      catch (_) { return reject(Object.assign(new Error('Некорректный JSON'), { statusCode: 400 })); }\n      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {\n        return reject(Object.assign(new Error('Ожидался JSON-объект'), { statusCode: 400 }));\n      }\n      resolve(parsed);\n    });\n    req.on('error', reject);\n  });\n}\n\nfunction defaultRoomSettings() {\n  return {\n    mode: 'shared', mapSize: 'medium', terrain: 'normal', difficulty: 'normal',\n    fog: true, dayNight: true, resourceDensity: 2, goblinSpawnLevel: 1,\n    researchSpeedLevel: 1, constructionSpeedLevel: 1, seed: null\n  };\n}\n\nfunction cleanRoomSettings(value) {\n  value = value && typeof value === 'object' ? value : {};\n  var sizes = ['superTiny','tiny','small','medium','large','huge','superHuge','elongated'];\n  var terrains = ['normal','mountain','island','flat'];\n  var difficulties = ['easy','normal','hard'];\n  var modes = ['shared','separate','pvp','goblinBases'];\n  var seed = value.seed;\n  if (seed === '' || seed === undefined || seed === null || !Number.isSafeInteger(Number(seed))) seed = null;\n  else seed = Number(seed);\n  function intIn(v, min, max, fallback) {\n    v = Number(v);\n    return Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : fallback;\n  }\n  return {\n    mode: modes.indexOf(value.mode) >= 0 ? value.mode : 'shared',\n    mapSize: sizes.indexOf(value.mapSize) >= 0 ? value.mapSize : 'medium',\n    terrain: terrains.indexOf(value.terrain) >= 0 ? value.terrain : 'normal',\n    difficulty: difficulties.indexOf(value.difficulty) >= 0 ? value.difficulty : 'normal',\n    fog: value.fog !== false,\n    dayNight: value.dayNight !== false,\n    resourceDensity: intIn(value.resourceDensity, 0, 3, 2),\n    goblinSpawnLevel: intIn(value.goblinSpawnLevel, 0, 3, 1),\n    researchSpeedLevel: intIn(value.researchSpeedLevel, 0, 2, 1),\n    constructionSpeedLevel: intIn(value.constructionSpeedLevel, 0, 2, 1),\n    seed: seed\n  };\n}\n\nfunction clearRoom() {\n\n  players.clear();\n  proposals.clear();\n  hostId = null;\n  roomCode = null;\n  hostLastSeen = 0;\n  sharedState = null;\n  revision = 0;\n  started = false;\n  roomSettings = defaultRoomSettings();\n}\n\nfunction prunePlayers() {\n  const now = Date.now();\n  if (hostId && now - hostLastSeen > HOST_TIMEOUT_MS) {\n    console.log('Хост не отвечает — комната закрыта.');\n    clearRoom();\n    return;\n  }\n  players.forEach(function (player, id) {\n    if (id !== hostId && now - player.lastSeen > GUEST_TIMEOUT_MS) {\n      players.delete(id);\n      proposals.delete(id);\n    }\n  });\n}\n\nfunction listPlayers() {\n  prunePlayers();\n  const out = [];\n  players.forEach(function (p) { out.push({ id: p.id, name: p.name, role: p.role }); });\n  return out;\n}\n\nfunction createPlayer(name, role) {\n  const player = { id: makeId(), name: cleanName(name), role: role, lastSeen: Date.now() };\n  players.set(player.id, player);\n  return player;\n}\n\nfunction heartbeat(id) {\n  const player = players.get(String(id || ''));\n  if (!player) return false;\n  player.lastSeen = Date.now();\n  if (player.id === hostId) hostLastSeen = player.lastSeen;\n  return true;\n}\n\nfunction suppliedRoomCode(req, body, url) {\n  const headerCode = req.headers['x-room-code'];\n  return String(headerCode || (body && body.roomCode) || (url && url.searchParams.get('roomCode')) || '')\n    .replace(/[^a-f0-9]/gi, '').toUpperCase().slice(0, 6);\n}\n\nfunction roomAuthorized(req, body, url) {\n  const supplied = suppliedRoomCode(req, body, url);\n  return !!roomCode && supplied === roomCode;\n}\n\nfunction isValidSnapshot(save) {\n  if (!save || typeof save !== 'object' || Array.isArray(save)) return false;\n  if (save.version !== 13 || !Array.isArray(save.terrain) || !save.terrain.length || save.terrain.length > 2000) return false;\n  const rowLength = Array.isArray(save.terrain[0]) ? save.terrain[0].length : 0;\n  if (!rowLength || rowLength > 2000) return false;\n  if (!save.terrain.every(function (row) { return Array.isArray(row) && row.length === rowLength; })) return false;\n  if (!save.res || typeof save.res !== 'object' || !Array.isArray(save.buildings) || !Array.isArray(save.units)) return false;\n  if (save.buildings.length > 50000 || save.units.length > 50000) return false;\n  return true;\n}\n\nfunction allowRate(req) {\n  const ip = (req.socket && req.socket.remoteAddress) || 'unknown';\n  const now = Date.now();\n  let record = rateWindows.get(ip);\n  if (!record || now - record.start > 60000) record = { start: now, count: 0 };\n  record.count += 1;\n  rateWindows.set(ip, record);\n  if (rateWindows.size > 500) {\n    rateWindows.forEach(function (entry, key) { if (now - entry.start > 120000) rateWindows.delete(key); });\n  }\n  return record.count <= MAX_REQUESTS_PER_MINUTE;\n}\n\nfunction findGameFile() {\n  var names;\n  try { names = fs.readdirSync(__dirname); } catch (_) { return null; }\n  var files = names.filter(function (name) {\n    if (!/\\.html?$/i.test(name) || name.charAt(0) === '.') return false;\n    try { return fs.statSync(path.join(__dirname, name)).isFile(); }\n    catch (_) { return false; }\n  });\n  if (!files.length) return null;\n\n  function rank(name) {\n    if (/^Settlement_v46_JOINFIX(?:_20261115)?\\.html?$/i.test(name)) return 160;\n    if (/^поселение\\s*v?46(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 140;\n    if (/^поселение.*v?46.*\\.html?$/i.test(name)) return 135;\n    if (/^settlement[ _-]*v?46.*\\.html?$/i.test(name)) return 130;\n    if (/v[ _-]*46/i.test(name) || /поселение.*46/i.test(name)) return 120;\n    if (/^поселение\\s*v?45(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 110;\n    if (/^поселение.*v?45.*\\.html?$/i.test(name)) return 105;\n    if (/^settlement[ _-]*v?45.*\\.html?$/i.test(name)) return 100;\n    if (/v[ _-]*45/i.test(name) || /поселение.*45/i.test(name)) return 90;\n    if (/^поселение/i.test(name)) return 70;\n    if (/^settlement/i.test(name)) return 60;\n    return 10;\n  }\n\n  files.sort(function (a, b) {\n    var diff = rank(b) - rank(a);\n    if (diff) return diff;\n    // If there are several unrelated HTML files, use the most recently updated one.\n    var at = 0, bt = 0;\n    try { at = fs.statSync(path.join(__dirname, a)).mtime.getTime(); } catch (_) {}\n    try { bt = fs.statSync(path.join(__dirname, b)).mtime.getTime(); } catch (_) {}\n    return bt - at || a.localeCompare(b);\n  });\n  return path.join(__dirname, files[0]);\n}\n\nfunction serveGame(req, res) {\n  var gameFile = findGameFile();\n  if (!gameFile) {\n    return plain(res, 404, 'В папке с server.js не найден HTML-файл игры. Скачайте «Поселение v45.html» и положите его в эту же папку. Имя файла может отличаться — важно, чтобы рядом с server.js был HTML игры.');\n  }\n  var stream = fs.createReadStream(gameFile);\n  res.writeHead(200, {\n    'Content-Type': 'text/html; charset=utf-8',\n    'Cache-Control': 'no-cache',\n    'X-Content-Type-Options': 'nosniff'\n  });\n  if (req.method === 'HEAD') return res.end();\n  stream.on('error', function () {\n    if (!res.headersSent) plain(res, 500, 'Не удалось прочитать HTML игры. Проверьте права доступа к файлу.');\n    else if (!res.finished) res.destroy();\n  });\n  stream.pipe(res);\n}\n\nasync function handleRequest(req, res) {\n  applyCors(req, res);\n  if (req.method === 'OPTIONS') {\n    res.writeHead(204, { 'Content-Length': '0' });\n    return res.end();\n  }\n  if (!allowRate(req)) return json(res, 429, { ok: false, error: 'Слишком много запросов. Подождите минуту.' });\n\n  let url;\n  try { url = new URL(req.url, 'http://' + (req.headers.host || 'localhost')); }\n  catch (_) { return json(res, 400, { ok: false, error: 'Некорректный URL' }); }\n  let pathname = url.pathname;\n  try { pathname = decodeURIComponent(pathname); }\n  catch (_) { return json(res, 400, { ok: false, error: 'Некорректный путь' }); }\n\n  if ((req.method === 'GET' || req.method === 'HEAD') && (pathname === '/' || pathname === '/index.html' || /\\.html?$/i.test(pathname))) {\n    return serveGame(req, res);\n  }\n\n  if (req.method === 'GET' && pathname === '/api/status') {\n    return json(res, 200, {\n      ok: true, protocol: PROTOCOL_VERSION, hostOnline: !!hostId, started: started,\n      revision: revision, maxPlayers: MAX_PLAYERS, players: listPlayers(), settings: roomSettings\n    });\n  }\n\n  if (req.method === 'GET' && pathname === '/api/state') {\n    prunePlayers();\n    const id = String(url.searchParams.get('id') || '');\n    if (!roomAuthorized(req, null, url)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!heartbeat(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена. Подключитесь к комнате заново.' });\n    const since = Math.max(0, Number(url.searchParams.get('since') || 0));\n    return json(res, 200, {\n      ok: true, hostOnline: !!hostId, started: started, revision: revision,\n      state: sharedState && revision > since ? sharedState : null,\n      players: listPlayers(), hostId: hostId, settings: roomSettings\n    });\n  }\n\n  if (req.method === 'GET' && pathname === '/api/pending') {\n    prunePlayers();\n    const id = String(url.searchParams.get('id') || '');\n    if (!roomAuthorized(req, null, url)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может получать действия' });\n    heartbeat(id);\n    const pending = [];\n    proposals.forEach(function (p) { pending.push(p); });\n    pending.sort(function (a, b) { return a.sentAt - b.sentAt; });\n    return json(res, 200, { ok: true, proposals: pending, players: listPlayers() });\n  }\n\n  if (req.method !== 'POST') return json(res, 404, { ok: false, error: 'Маршрут не найден' });\n\n  let body;\n  try { body = await readJsonBody(req); }\n  catch (err) { return json(res, err.statusCode || 400, { ok: false, error: err.message || 'Ошибка чтения запроса' }); }\n\n  if (pathname === '/api/host') {\n    prunePlayers();\n    if (hostId) return json(res, 409, { ok: false, error: 'Комната уже имеет активного хоста. Подключитесь к нему или дождитесь завершения сессии.' });\n    clearRoom();\n    roomCode = makeRoomCode();\n    roomSettings = cleanRoomSettings(body.settings);\n    const p = createPlayer(body.name, 'host');\n    hostId = p.id;\n    hostLastSeen = Date.now();\n    console.log('Создана комната ' + roomCode + ' (хост: ' + p.name + ')');\n    return json(res, 200, { ok: true, id: p.id, role: 'host', roomCode: roomCode, revision: revision, players: listPlayers(), settings: roomSettings, started: started });\n  }\n\n  if (pathname === '/api/join') {\n    prunePlayers();\n    if (!hostId) return json(res, 409, { ok: false, error: 'Хост ещё не создал комнату. Попросите хоста нажать «Хостить».' });\n    if (!roomAuthorized(req, body, url)) return json(res, 403, { ok: false, error: 'Код комнаты неверный. Попросите у хоста актуальный код.' });\n    if (players.size >= MAX_PLAYERS) return json(res, 409, { ok: false, error: 'Комната заполнена (максимум ' + MAX_PLAYERS + ' игроков).' });\n    const p = createPlayer(body.name, 'guest');\n    console.log(p.name + ' подключился к комнате ' + roomCode);\n    return json(res, 200, { ok: true, id: p.id, role: 'guest', revision: revision, state: sharedState, started: started, settings: roomSettings, players: listPlayers() });\n  }\n\n  if (pathname === '/api/heartbeat' || pathname === '/api/leave') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена' });\n    if (pathname === '/api/leave') {\n      const name = players.get(id).name;\n      if (id === hostId) {\n        console.log('Хост завершил комнату ' + roomCode);\n        clearRoom();\n      } else {\n        players.delete(id);\n        proposals.delete(id);\n        console.log(name + ' отключился');\n      }\n      return json(res, 200, { ok: true });\n    }\n    heartbeat(id);\n    return json(res, 200, { ok: true, players: listPlayers() });\n  }\n\n  if (pathname === '/api/config') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Настройки лобби может менять только хост' });\n    if (started) return json(res, 409, { ok: false, error: 'Мир уже запущен. Создайте новую комнату, чтобы изменить настройки.' });\n    roomSettings = cleanRoomSettings(body.settings);\n    heartbeat(id);\n    console.log('Обновлены настройки лобби: режим ' + roomSettings.mode + ', карта ' + roomSettings.mapSize);\n    return json(res, 200, { ok: true, settings: roomSettings, players: listPlayers() });\n  }\n\n  if (pathname === '/api/state') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может публиковать состояние' });\n    if (!isValidSnapshot(body.save)) return json(res, 400, { ok: false, error: 'Снимок мира неполный или имеет несовместимую версию. Обновите v46 у всех участников.' });\n    heartbeat(id);\n    sharedState = body.save;\n    started = true;\n    revision += 1;\n    return json(res, 200, { ok: true, revision: revision });\n  }\n\n  if (pathname === '/api/propose') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id) || id === hostId) return json(res, 403, { ok: false, error: 'Игрок не подключён или пытается действовать как хост' });\n    if (!isValidSnapshot(body.save)) return json(res, 400, { ok: false, error: 'Снимок действия неполный или несовместим с v46' });\n    const player = players.get(id);\n    const now = Date.now();\n    if (player.lastProposalAt && now - player.lastProposalAt < 500) return json(res, 429, { ok: false, error: 'Слишком быстро. Подождите немного и повторите действие.' });\n    heartbeat(id);\n    player.lastProposalAt = now;\n    proposalSequence += 1;\n    proposals.set(id, {\n      id: id, name: player.name, seq: proposalSequence,\n      baseRevision: Math.max(0, Number(body.baseRevision || 0)),\n      save: body.save, sentAt: now\n    });\n    return json(res, 200, { ok: true, seq: proposalSequence });\n  }\n\n  if (pathname === '/api/ack') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может подтверждать действия' });\n    const list = Array.isArray(body.proposals) ? body.proposals.slice(0, MAX_PLAYERS) : [];\n    list.forEach(function (item) {\n      if (!item) return;\n      const existing = proposals.get(String(item.id || ''));\n      if (existing && Number(existing.seq) === Number(item.seq)) proposals.delete(existing.id);\n    });\n    heartbeat(id);\n    return json(res, 200, { ok: true });\n  }\n\n  return json(res, 404, { ok: false, error: 'Маршрут не найден' });\n}\n\nconst server = http.createServer(function (req, res) {\n  handleRequest(req, res).catch(function (err) {\n    console.error('Ошибка обработки запроса:', err && err.stack ? err.stack : err);\n    if (!res.headersSent) json(res, 500, { ok: false, error: 'Внутренняя ошибка сервера' });\n    else if (!res.finished) res.end();\n  });\n});\n\nserver.requestTimeout = 120000;\nserver.headersTimeout = 15000;\nserver.keepAliveTimeout = 5000;\n\nserver.on('clientError', function (err, socket) {\n  if (socket && socket.writable) socket.end('HTTP/1.1 400 Bad Request\\r\\nConnection: close\\r\\n\\r\\n');\n});\n\nserver.on('error', function (err) {\n  console.error('Не удалось запустить сервер:', err.message);\n  if (err.code === 'EADDRINUSE') console.error('Порт ' + PORT + ' уже занят. Для другого порта выполните: PORT=3001 node server.js');\n  if (err.code === 'EACCES') console.error('Нет доступа к порту ' + PORT + '. Используйте порт выше 1024.');\n  process.exitCode = 1;\n});\n\nserver.listen(PORT, HOST, function () {\n  console.log('');\n  console.log('Поселение v46.1 — лобби мультиплеера и исправление входа');\n  console.log('Сборка: v46.1-joinfix (код комнаты обрабатывается корректно)');\n  console.log('Node.js: ' + process.version);\n  var nodeMajor = Number(String(process.versions.node || '0').split('.')[0]);\n  if (nodeMajor && nodeMajor < 8) console.log('ВНИМАНИЕ: эта версия сервера требует Node.js 8 или новее. Установите Node.js LTS.');\n  console.log('Рекомендация: используйте поддерживаемую LTS-версию Node.js для исправлений безопасности.');\n  console.log('Локально: http://localhost:' + PORT);\n  const interfaces = os.networkInterfaces();\n  const addresses = [];\n  Object.keys(interfaces).forEach(function (name) {\n    (interfaces[name] || []).forEach(function (item) {\n      if (item && (item.family === 'IPv4' || item.family === 4) && !item.internal) addresses.push(item.address);\n    });\n  });\n  Array.from(new Set(addresses)).forEach(function (address) { console.log('В локальной сети: http://' + address + ':' + PORT); });\n  console.log('Чтобы остановить сервер, нажмите Ctrl+C.');\n  console.log('Используйте только в доверенной сети: трафик не зашифрован.');\n  var detectedGameFile = findGameFile();\n  if (detectedGameFile) console.log('HTML игры: ' + path.basename(detectedGameFile));\n  else console.log('ВНИМАНИЕ: рядом с server.js не найден HTML-файл игры. Положите сюда «Поселение v46.html» или другой HTML-файл игры.');\n  console.log('');\n});\n\nfunction shutdown() {\n  if (shuttingDown) return;\n  shuttingDown = true;\n  console.log('\\nОстанавливаю сервер…');\n  clearRoom();\n  server.close(function () { process.exit(0); });\n  setTimeout(function () { process.exit(0); }, 3000).unref();\n}\nprocess.on('SIGINT', shutdown);\nprocess.on('SIGTERM', shutdown);\n";
+function mpGetName(){ const el=document.getElementById('mp-nickname'); return String(el?.value||'Игрок').replace(/[<>\u0000-\u001f]/g,'').trim().slice(0,24)||'Игрок'; }
+function mpGetBaseUrl(){
+  const el=document.getElementById('mp-server-url');
+  let value=String(el?.value||'').trim();
+  if(!value && location.protocol!=='file:') value=location.origin;
+  if(!value) value='http://localhost:3000';
+  if(!/^https?:\/\//i.test(value)) value='http://'+value;
+  return value.replace(/\/+$/,'');
+}
+// v46 hotfix: this helper was missing, causing joinMultiplayer() to throw
+// before its try/catch and making the Join button appear to do nothing.
+function mpGetRoomCode(){
+  const el=document.getElementById('mp-room-code');
+  return String(el && el.value || '').trim().toUpperCase().replace(/[^A-F0-9]/g,'').slice(0,6);
+}
+function mpSetStatus(message){ const el=document.getElementById('mp-status'); if(el) el.textContent=message; }
+function mpSetPlayers(list){ const el=document.getElementById('mp-players'); if(!el)return; const names=(list||[]).map(p=>'• '+String(p.name||'Игрок')+(p.role==='host'?' (хост)':'')).join('\n'); el.textContent=names?'Участники:\n'+names:''; }
+async function mpCopyText(text, promptLabel){
+  text=String(text==null?'':text);
+  try{
+    if(navigator.clipboard&&typeof navigator.clipboard.writeText==='function'){
+      await navigator.clipboard.writeText(text);return true;
+    }
+  }catch(_){/* fallback for HTTP/LAN and older browsers */}
+  try{
+    const area=document.createElement('textarea');area.value=text;area.setAttribute('readonly','');
+    area.style.position='fixed';area.style.left='-10000px';area.style.top='0';area.style.opacity='0';
+    document.body.appendChild(area);area.focus();area.select();area.setSelectionRange(0,area.value.length);
+    const ok=!!(document.execCommand&&document.execCommand('copy'));area.remove();if(ok)return true;
+  }catch(_){/* prompt is the final fallback */}
+  try{window.prompt(promptLabel||'Скопируйте текст вручную:',text);}catch(_){}
+  return false;
+}
+async function mpCopyLaunchCommand(){
+  const ok=await mpCopyText('node server.js','Скопируйте команду для терминала:');
+  mpSetStatus(ok?'Команда скопирована: node server.js. Вставьте её в терминал, открытый в папке с server.js.':'Автоматическое копирование недоступно. Скопируйте команду из окна: node server.js');
+}
+window.mpCopyLaunchCommand=mpCopyLaunchCommand;
+window.copyMpRoomCode=async function(){
+  const code=String(MP.roomCode||'').trim();
+  if(!code){mpSetStatus('Код комнаты появится после успешного хостинга.');return;}
+  const ok=await mpCopyText(code,'Скопируйте код комнаты и передайте его другим игрокам:');
+  mpSetStatus(ok?'Код комнаты '+code+' скопирован. Передайте его игрокам вместе с адресом '+MP.baseUrl+'.':'Выделите и скопируйте код вручную: '+code+'. Также передайте адрес сервера '+MP.baseUrl+'.');
+};
+function mpDownloadServer(){
+  const blob=new Blob([MULTIPLAYER_SERVER_SOURCE],{type:'text/javascript;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='server.js';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  mpSetStatus('Скачан server.js v46.1. Положите его рядом с HTML «Settlement_v46_JOINFIX.html», откройте терминал в этой папке и выполните node server.js. Затем откройте http://localhost:3000. Игрокам с других компьютеров нужен LAN-IP хоста.');
+}
+async function mpRequest(path, method='GET', payload=null, baseUrl=MP.baseUrl){
+  const opts={method,headers:{'Accept':'application/json'}};
+  const code=(payload && payload.roomCode) || MP.roomCode;
+  if(code) opts.headers['X-Room-Code']=String(code);
+  if(payload!==null){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(payload);}
+  const controller = typeof AbortController!=='undefined' ? new AbortController() : null;
+  let timeoutId=null;
+  if(controller){opts.signal=controller.signal;timeoutId=setTimeout(()=>controller.abort(),12000);}
+  let response;
+  try{response=await fetch(baseUrl+path,opts);}finally{if(timeoutId)clearTimeout(timeoutId);}
+  let data={}; try{data=await response.json();}catch(_){}
+  if(!response.ok||data.ok===false) throw new Error(data.error||('HTTP '+response.status));
+  return data;
+}
+function mpApplySnapshot(save){
+  if(!save||(!G.gameStarted&&(!save.terrain||!Array.isArray(save.terrain))))return false;
+  const localCam={x:cam.x,y:cam.y,zoom:cam.zoom};
+  // Keep client-local controls and charts when the shared world is refreshed.
+  // applySaveData rebuilds entities and normally clears selection/build mode/history.
+  const localUi={
+    speed:G.speed, wavePause:G.wavePause, build:G.build, selectedCategory:G.selectedCategory,
+    markerMode:G.markerMode, stats:G.stats, log:G.log, rateHistory:G.rateHistory, rateTimer:G.rateTimer,
+    selectedUnitIds:(G.selectedUnits||[]).map(u=>u.id), unitGroupIds:{}, selection:null
+  };
+  Object.keys(G.unitGroups||{}).forEach(k=>{localUi.unitGroupIds[k]=Array.isArray(G.unitGroups[k])?G.unitGroups[k].slice():G.unitGroups[k];});
+  if(G.sel){
+    if(G.buildings.indexOf(G.sel)>=0)localUi.selection={kind:'building',type:G.sel.type,tx:G.sel.tx,ty:G.sel.ty};
+    else if(G.units.indexOf(G.sel)>=0)localUi.selection={kind:'unit',id:G.sel.id};
+    else if(G.enemies.indexOf(G.sel)>=0)localUi.selection={kind:'enemy',type:G.sel.type,x:G.sel.x,y:G.sel.y};
+    else if(G.boats.indexOf(G.sel)>=0)localUi.selection={kind:'boat',x:G.sel.x,y:G.sel.y};
+    else if(G.helis.indexOf(G.sel)>=0)localUi.selection={kind:'heli',x:G.sel.x,y:G.sel.y};
+    else if(G.enemyBases.indexOf(G.sel)>=0)localUi.selection={kind:'enemyBase',id:G.sel.id,x:G.sel.x,y:G.sel.y};
+    else if(G.goblinBuildings.indexOf(G.sel)>=0)localUi.selection={kind:'goblinBuilding',type:G.sel.type,tx:G.sel.tx,ty:G.sel.ty};
+  }
+  MP.applying=true;
+  let ok=false;
+  try{ok=applySaveData({...save,cam:localCam});}catch(e){console.warn('MP snapshot',e);}
+  cam.x=localCam.x;cam.y=localCam.y;cam.zoom=localCam.zoom;clampCam();
+  if(ok){
+    G.speed=localUi.speed===undefined?1:localUi.speed;G.wavePause=!!localUi.wavePause;
+    G.build=localUi.build||null;G.selectedCategory=localUi.selectedCategory||null;G.markerMode=!!localUi.markerMode;
+    G.stats=localUi.stats||G.stats;G.log=localUi.log||G.log;G.rateHistory=localUi.rateHistory||G.rateHistory;G.rateTimer=localUi.rateTimer||0;
+    G.selectedUnits=localUi.selectedUnitIds.map(id=>G.units.find(u=>u.id===id)).filter(Boolean);
+    G.unitGroups={};Object.keys(localUi.unitGroupIds).forEach(k=>{
+      const ids=localUi.unitGroupIds[k];
+      G.unitGroups[k]=Array.isArray(ids)?ids.filter(id=>G.units.some(u=>u.id===id)):ids;
+    });
+    const d=localUi.selection;
+    if(d){
+      if(d.kind==='building')G.sel=G.buildings.find(b=>b.type===d.type&&b.tx===d.tx&&b.ty===d.ty)||null;
+      else if(d.kind==='unit')G.sel=G.units.find(u=>u.id===d.id)||null;
+      else if(d.kind==='enemy')G.sel=G.enemies.filter(e=>e.type===d.type).sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0]||null;
+      else if(d.kind==='boat')G.sel=G.boats.slice().sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0]||null;
+      else if(d.kind==='heli')G.sel=G.helis.slice().sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0]||null;
+      else if(d.kind==='enemyBase')G.sel=G.enemyBases.find(b=>b.id===d.id)||G.enemyBases.slice().sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0]||null;
+      else if(d.kind==='goblinBuilding')G.sel=G.goblinBuildings.find(b=>b.type===d.type&&b.tx===d.tx&&b.ty===d.ty)||null;
+    }
+    MP.applying=false;
+    updateResUI();refreshBuildUI();updateWaveHud();renderTech();updateResearchBar();updateInfoUI();
+    return true;
+  }
+  MP.applying=false;
+  return false;
+}
+function mpPublishSnapshot(){
+  if(MP.role!=='host'||!MP.worldStarted||!G.gameStarted)return Promise.resolve();
+  return mpRequest('/api/state','POST',{id:MP.id,save:buildSaveData()}).then(r=>{MP.lastRevision=r.revision||MP.lastRevision;MP.lastPublishAt=Date.now();}).catch(e=>{mpSetStatus('Потеряно соединение с сервером: '+e.message);});
+}
+async function mpTick(){
+  if(!MP.role||MP.busy)return;
+  MP.busy=true;
+  try{
+    await mpRequest('/api/heartbeat','POST',{id:MP.id});
+    if(MP.role==='host'){
+      const data=await mpRequest('/api/pending?id='+encodeURIComponent(MP.id));
+      mpSetPlayers(data.players||[]);
+      const proposals=(data.proposals||[]).slice().sort((a,b)=>Number(a.sentAt||0)-Number(b.sentAt||0));
+      let acceptedProposal=false;
+      let chosen=null;
+      // A proposal is a full snapshot, not an individual command. Applying several
+      // stale snapshots in one tick would overwrite one guest with another, so the
+      // newest valid snapshot wins and all fetched sequence numbers are acknowledged.
+      for(let i=proposals.length-1;i>=0;i--){
+        if(Number(proposals[i].baseRevision||0) >= MP.lastRevision-5){chosen=proposals[i];break;}
+      }
+      if(chosen && mpApplySnapshot(chosen.save)){
+        acceptedProposal=true;
+        if(proposals.length>1) mpSetStatus('Одновременно пришло несколько действий. Применён последний снимок; мультиплеер пока экспериментальный.');
+        else toast('🌐 Принят приказ от '+(chosen.name||'игрока'));
+      }
+      if(proposals.length){
+        await mpRequest('/api/ack','POST',{id:MP.id,proposals:proposals.map(p=>({id:p.id,seq:p.seq}))});
+      }
+      if(MP.worldStarted && (acceptedProposal || !MP.lastPublishAt || Date.now()-MP.lastPublishAt>2000)) await mpPublishSnapshot();
+    }else{
+      const data=await mpRequest('/api/state?id='+encodeURIComponent(MP.id)+'&since='+encodeURIComponent(MP.lastRevision));
+      mpSetPlayers(data.players||[]);if(data.settings)MP.lobbySettings=data.settings;MP.worldStarted=!!data.started;
+      if(data.state && data.revision>MP.lastRevision){
+        if(mpApplySnapshot(data.state)){
+          MP.lastRevision=data.revision;
+          if(!MP.joined){MP.joined=true;closeMenu();toast('🌐 Подключено к общему поселению');}
+        }
+      }else if(!data.hostOnline){mpSetStatus('Хост отключён. Проверьте адрес сервера или попросите хоста запустить node server.js.');}else if(!data.started&&overlayEl.classList.contains('open')&&overlayEl.dataset.view==='multiplayer'){mpSetStatus('Вы в комнате, но карта ещё не создана. Дождитесь, пока хост нажмёт «Создать мир и начать игру».');}
+    }
+  }catch(e){mpSetStatus('Соединение с сервером не удалось: '+e.message+'. Проверьте адрес и то, что node server.js запущен.');}
+  finally{MP.busy=false;}
+}
+function mpStartLoop(){ if(MP.timer)clearInterval(MP.timer); MP.timer=setInterval(mpTick,1000); mpTick(); document.getElementById('mp-indicator').style.display='block'; document.getElementById('mp-indicator').textContent='🌐 '+MP.name; }
+function mpStopLoop(){ if(MP.timer)clearInterval(MP.timer); MP.timer=null; document.getElementById('mp-indicator').style.display='none'; }
+function mpDefaultLobbySettings(){
+  return {
+    mode: 'shared', mapSize: selectedSize || 'medium', terrain: selectedTerrain || 'normal',
+    difficulty: selectedDifficulty || 'normal', fog: selectedFog !== false, dayNight: selectedDayNight !== false,
+    resourceDensity: Number.isFinite(Number(selectedResourceDensity)) ? Number(selectedResourceDensity) : 2,
+    goblinSpawnLevel: Number(selectedGoblinSpawn) > 0 ? Number(selectedGoblinSpawn) : 1,
+    researchSpeedLevel: Number.isFinite(Number(selectedResearchSpeedLevel)) ? Number(selectedResearchSpeedLevel) : 1,
+    constructionSpeedLevel: Number.isFinite(Number(selectedConstructionSpeedLevel)) ? Number(selectedConstructionSpeedLevel) : 1, seed: null
+  };
+}
+function mpReadLobbySettings(){
+  const old=MP.lobbySettings||mpDefaultLobbySettings();
+  const val=id=>document.getElementById(id);
+  const seedText=String(val('mp-seed')&&val('mp-seed').value||'').trim();
+  let seed=null;
+  if(seedText!==''){
+    if(!/^-?\d+$/.test(seedText)||!Number.isSafeInteger(Number(seedText))) throw new Error('Сид карты должен быть целым числом.');
+    seed=Number(seedText);
+  }
+  return {
+    mode:String(val('mp-mode')&&val('mp-mode').value||old.mode||'shared'),
+    mapSize:String(val('mp-map-size')&&val('mp-map-size').value||old.mapSize||'medium'),
+    terrain:String(val('mp-terrain')&&val('mp-terrain').value||old.terrain||'normal'),
+    difficulty:String(val('mp-difficulty')&&val('mp-difficulty').value||old.difficulty||'normal'),
+    fog:!!(val('mp-fog')?val('mp-fog').checked:old.fog),
+    dayNight:!!(val('mp-daynight')?val('mp-daynight').checked:old.dayNight),
+    resourceDensity:clamp(Math.floor(Number(val('mp-resources')?val('mp-resources').value:old.resourceDensity)||0),0,3),
+    goblinSpawnLevel:clamp(Math.floor(Number(val('mp-goblins')?val('mp-goblins').value:old.goblinSpawnLevel)||0),0,3),
+    researchSpeedLevel:clamp(Math.floor(Number(val('mp-research')?val('mp-research').value:old.researchSpeedLevel)||0),0,2),
+    constructionSpeedLevel:clamp(Math.floor(Number(val('mp-construction')?val('mp-construction').value:old.constructionSpeedLevel)||0),0,2),
+    seed:seed
+  };
+}
+function mpModeHelp(mode){
+  const el=document.getElementById('mp-mode-help');if(!el)return;
+  const text={
+    shared:'Все участники управляют одним поселением и используют общие ресурсы.',
+    separate:'Экспериментальный вариант: в v46 отдельные экономики и владение зданиями между людьми ещё не реализованы. Пока мир запускается как общее поселение.',
+    pvp:'Экспериментальный вариант: полноценные фракции игроков и PvP-бой ещё не поддерживаются игровым движком v46. Сейчас доступен общий мир; выбор сохраняется в настройках лобби.',
+    goblinBases:'Рабочий вариант: одно поселение против нескольких ИИ-баз гоблинов. Для старта используется игровой режим «Против баз».'
+  };
+  el.textContent=text[mode]||text.shared;
+}
+window.mpUpdateModeHelp=function(){mpModeHelp(String(document.getElementById('mp-mode')&&document.getElementById('mp-mode').value||'shared'));};
+window.mpUpdateLobbyLabels=function(){
+  const set=(id,items)=>{const e=document.getElementById(id);if(e)e.textContent=items[Number(e.previousElementSibling&&e.previousElementSibling.value)||0]||'';};
+  const res=document.getElementById('mp-resources-value');if(res)res.textContent=['Очень мало','Мало','Обычно','Изобилие'][Number(document.getElementById('mp-resources').value)]||'Обычно';
+  const gob=document.getElementById('mp-goblins-value');if(gob)gob.textContent=['Не спавнить','Редко','Обычно','Часто'][Number(document.getElementById('mp-goblins').value)]||'Редко';
+  const research=document.getElementById('mp-research-value');if(research)research.textContent=['×0.5','×1','×2'][Number(document.getElementById('mp-research').value)]||'×1';
+  const build=document.getElementById('mp-construction-value');if(build)build.textContent=['×0.5','×1','×2'][Number(document.getElementById('mp-construction').value)]||'×1';
+};
+window.hostMultiplayer=async function(){
+  if(MP.role){openMenu('multiplayer');mpSetStatus(MP.role==='host'?'Комната уже создана. Настройте карту и нажмите «Создать мир».':'Вы уже подключены к комнате.');return;}
+  MP.name=mpGetName();MP.baseUrl=mpGetBaseUrl();
+  if(location.hostname && /(^|\.)github\.io$/i.test(location.hostname)){
+    mpSetStatus('GitHub Pages размещает только статические файлы. Скачайте HTML и server.js, положите их рядом, запустите node server.js и откройте адрес сервера.');return;
+  }
+  if(location.protocol==='file:'){mpSetStatus('Для хостинга откройте игру через работающий сервер: обычно http://localhost:3000.');return;}
+  MP.lobbySettings=mpDefaultLobbySettings();MP.worldStarted=false;
+  try{
+    const serverInfo=await mpRequest('/api/status','GET',null,MP.baseUrl);
+    if(Number(serverInfo.protocol)!==3)throw new Error('На сервере старая версия протокола. Скачайте server.js из v46 и замените старый файл.');
+    const result=await mpRequest('/api/host','POST',{name:MP.name,settings:MP.lobbySettings},MP.baseUrl);
+    MP.role='host';MP.id=result.id;MP.roomCode=String(result.roomCode||'');MP.lastRevision=0;MP.joined=true;
+    MP.lobbySettings=result.settings||MP.lobbySettings;
+    openMenu('multiplayer');mpStartLoop();
+    mpSetStatus('Комната создана. Передайте код и адрес сервера участникам. Настройте карту ниже и нажмите «Создать мир».');
+    mpModeHelp(MP.lobbySettings.mode||'shared');
+  }catch(e){mpSetStatus('Не удалось создать комнату: '+e.message+'. Проверьте, что server.js запущен и вы открыли игру через тот же сервер. Для игроков из локальной сети localhost не подходит — нужен IP компьютера хоста.');}
+};
+window.joinMultiplayer=async function(){
+  const button=document.getElementById('mp-join-button');
+  if(button && button.disabled) return;
+  if(button){button.disabled=true;button.textContent='Подключение…';}
+  try{
+    if(MP.role){mpSetStatus('Вы уже подключены. Сначала нажмите «Отключиться», если хотите войти в другую комнату.');return;}
+    MP.name=mpGetName();
+    MP.baseUrl=mpGetBaseUrl();
+    const joinCode=mpGetRoomCode();
+    if(joinCode.length!==6){mpSetStatus('Введите все 6 символов кода комнаты, который сообщил хост.');return;}
+    mpSetStatus('Проверяем сервер '+MP.baseUrl+'…');
+    const ping=await mpRequest('/api/status','GET',null,MP.baseUrl);
+    if(Number(ping.protocol)!==3)throw new Error('На сервере старая версия. Скачайте server.js из исправленной v46 и замените старый файл.');
+    if(!ping.hostOnline)throw new Error('Сервер доступен, но хост ещё не создал комнату. На компьютере хоста сначала нажмите «Хостить».');
+    mpSetStatus('Код принят сервером. Подключаем игрока…');
+    const result=await mpRequest('/api/join','POST',{name:MP.name,roomCode:joinCode},MP.baseUrl);
+    MP.roomCode=joinCode;MP.role='guest';MP.id=result.id;MP.lastRevision=0;MP.joined=false;MP.worldStarted=!!result.started;MP.lobbySettings=result.settings||mpDefaultLobbySettings();
+    mpStartLoop();openMenu('multiplayer');mpSetPlayers(result.players||[]);
+    if(result.state&&mpApplySnapshot(result.state)){
+      MP.lastRevision=result.revision||0;MP.joined=true;MP.worldStarted=true;closeMenu();toast('🌐 Вы вошли в общее поселение');
+    }else{
+      mpSetStatus('Подключение успешно. Вы в лобби и ждёте, пока хост настроит и запустит карту. Если вы с другого компьютера, используйте IP хоста, а не localhost.');
+    }
+  }catch(e){
+    mpSetStatus('Подключиться не удалось: '+(e&&e.message?e.message:String(e))+'. Проверьте адрес и код комнаты. На другом компьютере используйте IP хоста, а не localhost; также проверьте, что хост уже создал комнату и порт не блокирует брандмауэр.');
+  }finally{
+    if(button && button.isConnected){button.disabled=false;button.textContent='🌐 Войти';}
+  }
+};
+window.startMultiplayerWorld=async function(){
+  if(MP.role!=='host')return;
+  let settings;
+  try{settings=mpReadLobbySettings();}catch(e){mpSetStatus(e.message);return;}
+  if(settings.seed===null||settings.seed===undefined) settings.seed=Math.floor(Math.random()*1000000000);
+  try{
+    await mpRequest('/api/config','POST',{id:MP.id,settings:settings},MP.baseUrl);
+    MP.lobbySettings=settings;
+    selectedSize=settings.mapSize;mapSize=settings.mapSize;
+    selectedTerrain=settings.terrain;terrainType=settings.terrain;
+    selectedDifficulty=settings.difficulty;
+    selectedFog=settings.fog;selectedDayNight=settings.dayNight;
+    selectedResourceDensity=settings.resourceDensity;selectedGoblinSpawn=settings.goblinSpawnLevel;
+    selectedResearchSpeedLevel=settings.researchSpeedLevel;selectedConstructionSpeedLevel=settings.constructionSpeedLevel;
+    // The core v46 engine supports the shared-colony and goblin-base scenarios. The
+    // separate-human-faction choices remain explicitly marked experimental in the lobby.
+    selectedMode=settings.mode==='goblinBases'?'battle':'normal';
+    G.mode=selectedMode;G.difficulty=selectedDifficulty;G.creative=false;
+    G.fogEnabled=selectedFog;G.dayNightEnabled=selectedDayNight;
+    G.resourceDensity=selectedResourceDensity;G.goblinSpawnLevel=selectedGoblinSpawn;
+    MP.worldStarted=true;
+    closeMenu();newGame(settings.seed);await mpPublishSnapshot();
+    toast(settings.mode==='goblinBases'?'🌐 Мир создан: одна колония против ИИ-баз гоблинов.':'🌐 Мир создан. Игроки подключены к общей карте.');
+  }catch(e){MP.worldStarted=false;mpSetStatus('Не удалось запустить карту: '+e.message+'. Комната сохранена — исправьте настройки и попробуйте снова.');openMenu('multiplayer');}
+};
+window.leaveMultiplayer=async function(){
+  const base=MP.baseUrl,id=MP.id;mpStopLoop();if(MP.proposalTimer)clearTimeout(MP.proposalTimer);
+  try{if(base&&id)await mpRequest('/api/leave','POST',{id},base);}catch(_){}
+  MP.role=null;MP.id=null;MP.name='';MP.baseUrl='';MP.roomCode='';MP.lastRevision=0;MP.joined=false;MP.worldStarted=false;MP.lobbySettings=null;MP.applying=false;MP.lastProposalAt=0;
+  toast('Мультиплеер отключён');if(overlayEl.classList.contains('open'))openMenu('main');
+};
+function renderMenuMultiplayer(){
+  const connected=!!MP.role;
+  const onGitHubPages=!!(location.hostname&&/(^|\.)github\.io$/i.test(location.hostname));
+  const defaultServer=MP.baseUrl||((location.protocol==='file:'||onGitHubPages)?'http://localhost:3000':location.origin);
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const safeName=esc(MP.name||'');const safeUrl=esc(defaultServer);
+  const settings=MP.lobbySettings||mpDefaultLobbySettings();
+  const isHost=MP.role==='host';const isGuest=MP.role==='guest';
+  const sizeNames={superTiny:'Крошечная',tiny:'Очень маленькая',small:'Маленькая',medium:'Средняя',large:'Большая',huge:'Огромная',superHuge:'Гигантская',elongated:'Вытянутая'};
+  const terrainNames={normal:'Обычный',mountain:'Горный',island:'Острова',flat:'Равнина'};
+  const difficultyNames={easy:'Легко',normal:'Нормально',hard:'Сложно'};
+  const opts=(obj,value)=>Object.keys(obj).map(k=>`<option value="${esc(k)}" ${k===value?'selected':''}>${esc(obj[k])}</option>`).join('');
+  let html=`<div class="menu-box wide"><h2>🌐 Мультиплеер (экспериментально) <small style="font-size:10px;color:#7fc27f;letter-spacing:0">v46 · исправлен вход</small></h2>
+    <div class="mode-detail-card"><b>Как это работает.</b> Хост создаёт комнату, настраивает мир и запускает карту. Остальные игроки входят по адресу сервера и шестизначному коду комнаты. В v46 надёжно поддерживается общее поселение; остальные варианты фракций обозначены как экспериментальные, см. описание режима.</div>
+    <div class="mode-detail-card" style="border-left-color:#d8b45e"><b>Если игра открыта через GitHub Pages:</b> сначала скачайте HTML-файл и поместите его рядом с <code>server.js</code>. GitHub Pages не запускает Node.js-сервер. Запустите <code>node server.js</code> и откройте игру по адресу сервера. <code>localhost</code> работает только на том же компьютере — другим игрокам нужен LAN-IP хоста.</div>
+    ${isHost?`<div class="mp-roomcode"><b>Код комнаты: <span id="mp-room-code-visible">${esc(MP.roomCode)}</span></b><button type="button" onclick="copyMpRoomCode()">📋 Скопировать код</button><small>Участникам также нужен адрес сервера: <code>${esc(MP.baseUrl)}</code></small></div>`:''}
+    ${!connected?`<div class="mp-table">
+      <div class="mp-head">Ник</div><div class="mp-head">Хостить</div><div class="mp-head">Войти</div>
+      <div class="mp-cell"><label for="mp-nickname"><b>Ваш ник</b></label><input id="mp-nickname" maxlength="24" autocomplete="nickname" placeholder="Например, Поселенец" value="${safeName}"></div>
+      <div class="mp-cell"><p><b>Перед хостингом</b><br>1. Установите <a href="https://nodejs.org/en/download/" target="_blank" rel="noopener" style="color:#9fc4ee">Node.js LTS</a>.<br>2. Скачайте <code>server.js</code> и положите рядом с HTML-файлом игры.<br>3. Откройте терминал в этой папке и выполните команду ниже.<br>4. Откройте страницу сервера, обычно <code>http://localhost:3000</code>, и нажмите «Хостить».</p><div class="mp-command-row"><code>node server.js</code><button type="button" onclick="mpCopyLaunchCommand()">📋 Копировать команду</button></div><button type="button" onclick="mpDownloadServer()">⬇ Скачать server.js</button><button type="button" class="primary" onclick="hostMultiplayer()">🌐 Хостить / создать комнату</button></div>
+      <div class="mp-cell"><label for="mp-server-url"><b>Адрес сервера</b></label><input id="mp-server-url" spellcheck="false" placeholder="http://192.168.1.20:3000" value="${safeUrl}"><label for="mp-room-code"><b>Код комнаты</b></label><input id="mp-room-code" maxlength="6" autocomplete="off" spellcheck="false" placeholder="Например, A1B2C3" oninput="this.value=this.value.toUpperCase().replace(/[^A-F0-9]/g,'').slice(0,6)"><p>Для другого компьютера укажите IP хоста, а не localhost.</p><button type="button" id="mp-join-button" class="primary">🌐 Войти</button></div>
+    </div>`:''}
+    ${isHost&&!MP.worldStarted?`<div class="mode-detail-card" style="border-left-color:#7fc27f"><b>Лобби хоста — создайте карту</b><br>Сначала настройте параметры ниже. Игроки уже могут подключаться по коду, но карта начнётся только после нажатия «Создать мир».</div>
+      <div class="mp-lobby-grid">
+        <label>Размер карты<select id="mp-map-size">${opts(sizeNames,settings.mapSize)}</select></label>
+        <label>Ландшафт<select id="mp-terrain">${opts(terrainNames,settings.terrain)}</select></label>
+        <label>Сложность<select id="mp-difficulty">${opts(difficultyNames,settings.difficulty)}</select></label>
+        <label>Режим мультиплеера<select id="mp-mode" onchange="mpUpdateModeHelp()">
+          <option value="shared" ${settings.mode==='shared'?'selected':''}>Все управляют одной колонией</option>
+          <option value="separate" ${settings.mode==='separate'?'selected':''}>Каждый игрок — отдельная колония (экспериментально)</option>
+          <option value="pvp" ${settings.mode==='pvp'?'selected':''}>Разные колонии и война между игроками (экспериментально)</option>
+          <option value="goblinBases" ${settings.mode==='goblinBases'?'selected':''}>Одна колония против ИИ-баз гоблинов</option>
+        </select></label>
+        <div class="mp-mode-help" id="mp-mode-help"></div>
+        <label>Сид карты <input id="mp-seed" type="number" step="1" placeholder="Случайный" value="${settings.seed==null?'':esc(settings.seed)}"></label>
+        <label class="mp-check"><input id="mp-fog" type="checkbox" ${settings.fog?'checked':''}> Туман войны</label>
+        <label class="mp-check"><input id="mp-daynight" type="checkbox" ${settings.dayNight?'checked':''}> Смена дня и ночи</label>
+        <label>Ресурсы: <b id="mp-resources-value">${['Очень мало','Мало','Обычно','Изобилие'][settings.resourceDensity]||'Обычно'}</b><input id="mp-resources" type="range" min="0" max="3" step="1" value="${settings.resourceDensity}" oninput="mpUpdateLobbyLabels()"></label>
+        <label>Спавн гоблинов из тумана: <b id="mp-goblins-value">${['Не спавнить','Редко','Обычно','Часто'][settings.goblinSpawnLevel]||'Редко'}</b><input id="mp-goblins" type="range" min="0" max="3" step="1" value="${settings.goblinSpawnLevel}" oninput="mpUpdateLobbyLabels()"></label>
+        <label>Скорость исследований: <b id="mp-research-value">${['×0.5','×1','×2'][settings.researchSpeedLevel]||'×1'}</b><input id="mp-research" type="range" min="0" max="2" step="1" value="${settings.researchSpeedLevel}" oninput="mpUpdateLobbyLabels()"></label>
+        <label>Скорость строительства: <b id="mp-construction-value">${['×0.5','×1','×2'][settings.constructionSpeedLevel]||'×1'}</b><input id="mp-construction" type="range" min="0" max="2" step="1" value="${settings.constructionSpeedLevel}" oninput="mpUpdateLobbyLabels()"></label>
+      </div>
+      <button type="button" class="primary" onclick="startMultiplayerWorld()">🚀 Создать мир и начать игру</button>`:''}
+    ${isGuest?`<div class="mode-detail-card"><b>Вы подключены к комнате ${esc(MP.roomCode)}.</b><br>Ожидаем, пока хост настроит и запустит мир. Не закрывайте эту вкладку.</div>`:''}
+    <div id="mp-status" class="mp-status">${connected?(isHost?'Комната создана. Настройте параметры карты и запустите мир.':'Вы в лобби. Ожидаем хоста.'):'Введите ник и выберите действие.'}</div><div id="mp-players" class="mp-players"></div>
+    ${connected?'<button type="button" onclick="leaveMultiplayer()">Отключиться / закрыть комнату</button>':''}
+    <button type="button" class="back-btn" onclick="openMenu('main')">◀ Назад</button></div>`;
+  overlayEl.innerHTML=html;
+  const joinButton=overlayEl.querySelector('#mp-join-button');
+  if(joinButton) joinButton.addEventListener('click', function(event){
+    event.preventDefault();
+    if(typeof window.joinMultiplayer==='function') window.joinMultiplayer();
+    else mpSetStatus('Ошибка интерфейса: обработчик входа не загружен. Перезагрузите эту HTML-версию.');
+  });
+  if(isHost){mpModeHelp(settings.mode||'shared');mpSetStatus('Комната создана. Код: '+MP.roomCode+'. Настройте карту; участники могут подключаться уже сейчас.');}
+  if(isGuest)mpSetStatus('Подключено к серверу '+MP.baseUrl+'. Код комнаты: '+MP.roomCode+'. Ожидаем запуск карты хостом.');
+  if(connected){mpRequest('/api/status','GET',null,MP.baseUrl).then(d=>mpSetPlayers(d.players||[])).catch(e=>mpSetStatus('Не удалось получить список участников: '+e.message));}
+  translateDOM(overlayEl);
+}
+function mpQueueProposal(){
+  if(MP.proposalTimer)clearTimeout(MP.proposalTimer);
+  const wait=Math.max(300,650-(Date.now()-MP.lastProposalAt));
+  MP.proposalTimer=setTimeout(function(){
+    MP.proposalTimer=null;
+    if(MP.role!=='guest'||MP.applying||!G.gameStarted||overlayEl.classList.contains('open'))return;
+    MP.lastProposalAt=Date.now();
+    mpRequest('/api/propose','POST',{id:MP.id,baseRevision:MP.lastRevision,save:buildSaveData()})
+      .catch(function(e){mpSetStatus('Не удалось отправить действие: '+e.message);});
+  },wait);
+}
+document.addEventListener('pointerup',e=>{
+  const actionable=!!(e.target===canvas||(e.target.closest&&e.target.closest('#info,#build,#techmodal,#workersmodal,#diplomacymodal,#questpanel')));
+  if(!actionable||MP.role!=='guest'||MP.applying||!G.gameStarted||overlayEl.classList.contains('open'))return;
+  mpQueueProposal();
+},true);
+document.addEventListener('keyup',e=>{
+  if(MP.role!=='guest'||MP.applying||!G.gameStarted||overlayEl.classList.contains('open'))return;
+  if(e.target&&['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;
+  if(['Escape','Tab','Shift','Control','Alt','w','a','s','d','W','A','S','D','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))return;
+  mpQueueProposal();
+},true);
+
 function openMenu(view){
   clearInputState();
   hideTooltip(); overlayEl.classList.add('open');
   overlayEl.dataset.view = view || 'main';
   if(view === 'main') renderMenuMain();
   else if(view === 'newgame'){ mapSeed = Math.floor(Math.random() * 1000000); renderMenuNewGame(); }
+  else if(view === 'multiplayer') renderMenuMultiplayer();
   else if(view === 'save') renderMenuSave();
   else if(view === 'load') renderMenuLoad();
   applyUIScale(); translateDOM(overlayEl);
@@ -7936,6 +8661,7 @@ function renderMenuMain(){
     <div class="lang-toggle"><button class="lang-btn" onclick="setLang('${currentLang==='ru'?'en':'ru'}')">${currentLang==='ru'?'EN':'RU'}</button></div>
     <h2>${t('menu')}</h2>
     <button onclick="openMenu('newgame')">${t('newGame')}</button>
+    <button onclick="openMenu('multiplayer')">🌐 Мультиплеер (экспериментально)</button>
     <button onclick="openMenu('load')" ${hasSaves ? '' : 'disabled'}>${t('loadSlot')}</button>`;
   if(autoSave){ html += `<button onclick="doLoad('auto')" style="background:#2a3a4a;border-color:#4a80c0">🔄 ${t('loadAuto')} <span class="slot-info">${formatDate(autoSave.savedAt)}</span></button>`; }
   html += `<button onclick="loadFromFile()">${t('loadFile')}</button>
@@ -7981,6 +8707,9 @@ function renderMenuNewGame(){
   html += `<div class="menu-range"><div class="menu-range-head"><label for="resource-density">⛏ Спавн залежей</label><span class="menu-range-value" id="resource-density-value">Обычно</span></div><input id="resource-density" type="range" min="0" max="3" step="1" value="${selectedResourceDensity}" oninput="selectResourceDensity(this.value)"><div class="menu-range-ends"><span>Очень мало · 1 жила каждого типа</span><span>Изобилие</span></div></div>`;
   html += '<div class="menu-section">Независимый спавн гоблинов</div>';
   html += `<div class="menu-range"><div class="menu-range-head"><label for="goblin-spawn">👺 Спавн гоблинов</label><span class="menu-range-value" id="goblin-spawn-value">Не спавнить гоблинов</span></div><input id="goblin-spawn" type="range" min="0" max="3" step="1" value="${selectedGoblinSpawn}" oninput="selectGoblinSpawn(this.value)"><div class="menu-range-ends"><span>Выключено</span><span>Много гоблинов</span></div><small style="color:#8fa6c0">Независим от режима: отряды случайно выходят с краёв карты или из неразведанного тумана.</small></div>`;
+  html += '<div class="menu-section">Скорость развития</div>';
+  html += `<div class="menu-range"><div class="menu-range-head"><label for="research-speed">🔬 Множитель скорости исследований</label><span class="menu-range-value" id="research-speed-value">×${worldSpeedMultiplier(selectedResearchSpeedLevel).toFixed(1)}</span></div><input id="research-speed" type="range" min="0" max="2" step="1" value="${selectedResearchSpeedLevel}" oninput="selectResearchSpeed(this.value)"><div class="menu-range-ends"><span>Уменьшить · ×0.5</span><span>Обычно · ×1.0</span><span>Увеличить · ×2.0</span></div></div>`;
+  html += `<div class="menu-range"><div class="menu-range-head"><label for="construction-speed">🏗 Множитель скорости строительства</label><span class="menu-range-value" id="construction-speed-value">×${worldSpeedMultiplier(selectedConstructionSpeedLevel).toFixed(1)}</span></div><input id="construction-speed" type="range" min="0" max="2" step="1" value="${selectedConstructionSpeedLevel}" oninput="selectConstructionSpeed(this.value)"><div class="menu-range-ends"><span>Уменьшить · ×0.5</span><span>Обычно · ×1.0</span><span>Увеличить · ×2.0</span></div></div>`;
   html += '<div class="menu-section">Настройки карты</div>';
   html += '<div class="setting-row"><label>🌫 Туман войны</label><label class="toggle-switch"><input type="checkbox" ' + (selectedFog?'checked':'') + ' onchange="selectFog(this.checked)"><span class="toggle-slider"></span></label></div>';
   html += '<div class="setting-row"><label>🌙 Смена дня и ночи</label><label class="toggle-switch"><input type="checkbox" ' + (selectedDayNight?'checked':'') + ' onchange="selectDayNight(this.checked)"><span class="toggle-slider"></span></label></div>';
@@ -8053,7 +8782,8 @@ addEventListener('keydown', e => {
       if(activeModal){
         activeModal.classList.remove('open');
         if(activeModal.id === 'gameovermodal') openMenu('main');
-      } else if(G.build){ G.build = null; refreshBuildUI(); }
+      } else if(movingPlatform){ const b=movingPlatform.building;movingPlatform=null;G.sel=b;updateInfoUI();toast('Перемещение отменено'); }
+      else if(G.build){ G.build = null; refreshBuildUI(); }
       else if(G.markerMode){ G.markerMode = false; }
       else if(buildItemsEl.classList.contains('open')){ G.selectedCategory = null; buildItemsEl.classList.remove('open'); buildCatsEl.querySelectorAll('.catbtn').forEach(el => el.classList.remove('active')); }
       else openMenu('main');
@@ -8091,6 +8821,11 @@ function updateTimeButtons(){ document.querySelectorAll('.timebtn').forEach(el =
 document.querySelectorAll('.timebtn').forEach(el => { el.onclick = () => { SND.click(); G.speed = parseInt(el.dataset.speed); updateTimeButtons(); }; });
 let mouseDown = false, dragStartX = 0, dragStartY = 0, panMode = false;
 let lastMX = 0, lastMY = 0;
+function cursorOverInterface(x,y){
+  const el=document.elementFromPoint(x,y);
+  return !!(el && el.closest('#topbar,#build,#resbar,#minimap,#minimap-controls,#info,#questpanel,#logbox,#wavehud,#questhud,#researchbar,#tooltip,.sidepanel,#fps-counter,#overlay,#statsmodal,#settingsmodal,#techmodal,#workersmodal,#achievementsmodal,#diplomacymodal,#gameovermodal'));
+}
+addEventListener('mousemove', e=>{G.mouse.x=e.clientX;G.mouse.y=e.clientY;G.mouse.inside=e.clientX>=0&&e.clientY>=0&&e.clientX<W&&e.clientY<H;});
 canvas.addEventListener('mousedown', e => {
   G.mouse.x = e.clientX; G.mouse.y = e.clientY;
   if(e.button === 1){ panMode = true; lastMX = e.clientX; lastMY = e.clientY; e.preventDefault(); return; }
@@ -8131,6 +8866,7 @@ addEventListener('mouseup', e => {
 canvas.addEventListener('mouseleave', () => { G.mouse.inside = false; mouseDown = false; panMode = false; hideTooltip(); });
 canvas.addEventListener('contextmenu', e => {
   e.preventDefault();
+  if(movingPlatform){const b=movingPlatform.building;movingPlatform=null;G.sel=b;updateInfoUI();toast('Перемещение отменено');return;}
   const [wx, wy] = screenToWorld(e.clientX, e.clientY);
   for(let i = G.markers.length - 1; i >= 0; i--){ const m = G.markers[i]; if(Math.hypot(m.x - wx, m.y - wy) < 20){ G.markers.splice(i, 1); return; } }
   if(G.sel && G.sel.def && G.sel.def.unitType && G.sel.def.maxUnits){ G.sel.rallyPoint = {x: wx, y: wy}; toast('🚩 Точка сбора установлена'); updateInfoUI(); return; }
@@ -8172,6 +8908,15 @@ function clampCam(){
 function handleClick(sx, sy){
   const [wx, wy] = screenToWorld(sx, sy);
   const tx = Math.floor(wx/TS), ty = Math.floor(wy/TS);
+  if(movingPlatform){
+    const pending=movingPlatform, b=pending.building;
+    if(canMovePlatformTo(b,tx,ty)){
+      b.tx=tx;b.ty=ty;b.px=tx*TS+TS/2;b.py=ty*TS+TS/2;b.platformDeployed=pending.wasDeployed;
+      movingPlatform=null;G.sel=b;G.selectedUnits=[];renderMiniBg();invalidatePathCache();
+      toast('Форпост перемещён');SND.place();updateInfoUI();
+    }else{toast('Сюда нельзя переместить форпост');SND.error();}
+    return;
+  }
   if(G.markerMode){ G.markers.push({x: wx, y: wy}); toast('Метка поставлена (ПКМ — убрать)'); SND.click(); return; }
   if(G.build === 'demolish'){
     const b = buildingAt(tx, ty);
@@ -8321,6 +9066,7 @@ function newGame(seedArg){
   G.quests = {}; G.energy = { produced: 0, consumed: 0, demand: 0, efficiency: 1 };
   G.wave = 0; G.waveTimer = G.mode === 'waves' ? 60 : 0;
   G.resourceDensity=selectedResourceDensity;G.goblinSpawnLevel=selectedGoblinSpawn;G.ambientGoblinTimer=0;
+  G.researchSpeedLevel=selectedResearchSpeedLevel;G.constructionSpeedLevel=selectedConstructionSpeedLevel;
   G.totalKills = 0; G.civilianDeaths = 0; G.goblinBuildingsDestroyed = 0;
   G.battleActive = false; G.gameOver = false; G.wavePause = false; G.warRaidTimer = 90;
   initFog();
@@ -8475,6 +9221,11 @@ function loop(now){
   if(keys['d'] || keys['arrowright'] || keys['в']){ cam.x += spd; moved = true; }
   if(keys['w'] || keys['arrowup'] || keys['ц']){ cam.y -= spd; moved = true; }
   if(keys['s'] || keys['arrowdown'] || keys['ы']){ cam.y += spd; moved = true; }
+  if(SETTINGS.edgeScroll && G.mouse.inside && !isAnyModalOpen() && !cursorOverInterface(G.mouse.x,G.mouse.y)){
+    const edge=24, edgeSpeed=760/cam.zoom*dt, mx=G.mouse.x, my=G.mouse.y;
+    if(mx<edge){cam.x-=edgeSpeed;moved=true;} else if(mx>W-edge){cam.x+=edgeSpeed;moved=true;}
+    if(my<edge){cam.y-=edgeSpeed;moved=true;} else if(my>H-edge){cam.y+=edgeSpeed;moved=true;}
+  }
   if(moved) clampCam();
   if(G.gameStarted && !isAnyModalOpen() && G.speed > 0 && !G.gameOver){
     update(dt * G.speed);
@@ -8522,8 +9273,11 @@ function loop(now){
     const modeParam = params.get('mode');
     const difficultyParam = params.get('difficulty');
     const resourceParam=params.get('resources'),goblinParam=params.get('goblins');
+    const researchSpeedParam=params.get('researchSpeed'),constructionSpeedParam=params.get('constructionSpeed');
     if(resourceParam!==null&&/^\d+$/.test(resourceParam))selectedResourceDensity=clamp(Number(resourceParam),0,3);
     if(goblinParam!==null&&/^\d+$/.test(goblinParam))selectedGoblinSpawn=clamp(Number(goblinParam),0,3);
+    if(researchSpeedParam!==null&&/^\d+$/.test(researchSpeedParam))selectedResearchSpeedLevel=clamp(Number(researchSpeedParam),0,2);
+    if(constructionSpeedParam!==null&&/^\d+$/.test(constructionSpeedParam))selectedConstructionSpeedLevel=clamp(Number(constructionSpeedParam),0,2);
     if(MAP_SIZES[sizeParam]) mapSize = selectedSize = sizeParam;
     if(TERRAIN_TYPES[terrainParam]) terrainType = selectedTerrain = terrainParam;
     if(['normal','creative','war','battle','waves','experimental'].includes(modeParam)) selectedMode = modeParam;
