@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Поселение v53</title>
+<title>Поселение v55 — стратегическая ИИ-база гоблинов</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#0b0e13;font-family:system-ui,'Segoe UI',Arial,sans-serif;color:#e8eef7;user-select:none}
@@ -360,7 +360,7 @@ body:not(.ui-hidden) .sidepanel {
 
 </style>
 <!-- BUILD: Settlement_v52_STAGE4_GOBLIN_PATHS_20261115 -->
-<!-- BUILD: Settlement_v53_DEFENSE_COMMAND_PANEL -->
+<!-- BUILD: Settlement_v55_STRATEGIC_GOBLIN_BASE_AI -->
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -494,6 +494,9 @@ const EN_MAP = {
   'Поделиться':'Share','Ссылка скопирована!':'Link copied!','Рабочие':'Workers','Дипломатия':'Diplomacy',
   'Игра окончена':'Game Over','Продолжить':'Continue','В меню':'Main Menu','Улучшить':'Upgrade',
   'Точка сбора':'Rally Point','Задания':'Quests','Дерево технологий':'Tech Tree',
+  'Показывать координаты X/Y':'Show X/Y coordinates','При наведении на карту показывает координаты клетки X/Y (отсчёт начинается с 0).':'Shows the hovered map tile coordinates X/Y (zero-based).',
+  'Наземная мишень · оружие игрока':'Ground target · player weapons','Наземная мишень · атаки гоблинов':'Ground target · goblin attacks','Летающая мишень · оружие игрока':'Flying target · player weapons','Летающая мишень · атаки гоблинов':'Flying target · goblin attacks',
+  'Неподвижная вражеская наземная цель с большим запасом здоровья для проверки пушек, ракет и другого оружия игрока.':'Stationary hostile ground target with high HP for testing cannons, missiles and other player weapons.','Неподвижная цель стороны игрока. Гоблины могут выбирать её и атаковать; сама мишень не двигается и не отвечает.':'Stationary player-side target that goblins can select and attack; it does not move or retaliate.','Вражеская воздушная цель для проверки ПВО и противовоздушных атак игрока.':'Hostile air target for testing player anti-air defenses.','Воздушная цель стороны игрока для проверки гоблинских зенитчиков. Обычные наземные гоблины её не атакуют.':'Player-side air target for testing goblin flak. Ordinary ground goblins do not attack it.',
   'Дерево':'Wood','Доски':'Planks','Камень':'Stone','Блоки':'Blocks','Еда':'Food',
   'Уголь':'Coal','Жел.руда':'Iron ore','Железо':'Iron','Мед.руда':'Copper ore',
   'Медь':'Copper','Зол.руда':'Gold ore','Золото':'Gold','Уран.руда':'Uranium ore',
@@ -718,7 +721,7 @@ let mapSeed = null;
 // =================== SETTINGS ===================
 const SETTINGS = {
   sound: true, volume: 0.75, musicVolume: 0.25, minimap: true, minimapSize: 'medium',
-  log: true, particles: true, hints: true, uiScale: 1.0, fps: false, graphics: 'normal', renderQuality: 1.0, edgeScroll: false,
+  log: true, particles: true, hints: true, uiScale: 1.0, fps: false, graphics: 'normal', renderQuality: 1.0, edgeScroll: false, showCoordinates: false,
 };
 function loadSettings(){
   try { const raw = localStorage.getItem('citysim_settings'); if(raw) Object.assign(SETTINGS, JSON.parse(raw)); } catch(e){}
@@ -995,6 +998,8 @@ const ENEMY_TYPES = {
   warlord:      {name:'Вождь', hp:600, atk:70, range:1.8, cooldown:1.5, speed:38, color:'#a02020', ranged:false},
   goblinBoss:   {name:'Король гоблинов', hp:1900, atk:115, range:2.2, cooldown:1.4, speed:36, color:'#d22e3a', boss:true, summoner:true},
   goblinWorker: {name:'Гоблин-рабочий', hp:42, atk:0, range:0, cooldown:1, speed:30, color:'#b7a36a', ranged:false, worker:true},
+  targetDummyGround:{name:'Наземная мишень',hp:5000,atk:0,range:0,cooldown:9999,speed:0,color:'#d84f4f',ranged:false,testTarget:true},
+  targetDummyAir:{name:'Летающая мишень',hp:5000,atk:0,range:0,cooldown:9999,speed:0,color:'#e06a4f',ranged:false,flying:true,testTarget:true},
 };
 const GOBLIN_BUILDINGS = {
   goblinTurret:     {name:'Гоблинская башня', hp:250, range:5, damage:14, cooldown:1.6, attackType:'arrow', icon:'🏹'},
@@ -1263,7 +1268,10 @@ const CREATIVE_ITEMS = {
   spawn_goblinWall: {name:'Б. стена', desc:'Гоблинская стена на карте', icon:'🧱'},
   spawn_enemyBase: {name:'База волн', desc:'Создаёт врагов; с течением времени атаки становятся сильнее и чаще', icon:'🏰'},
   spawn_aiBase: {name:'База ИИ', desc:'Строит экономические здания, копит ресурсы, исследует уровни и усиливает армию', icon:'🧠'},
-  spawn_landMine: {name:'Наземная мина', desc:'Скрытая ловушка, взрывается от вражеского юнита', icon:'💣'},
+  spawn_targetPlayerGround: {name:'Наземная мишень · оружие игрока', desc:'Неподвижная вражеская наземная цель с большим запасом здоровья для проверки пушек, ракет и другого оружия игрока.', icon:'🎯'},
+  spawn_targetGoblinGround: {name:'Наземная мишень · атаки гоблинов', desc:'Неподвижная цель стороны игрока. Гоблины могут выбирать её и атаковать; сама мишень не двигается и не отвечает.', icon:'🟢'},
+  spawn_targetPlayerAir: {name:'Летающая мишень · оружие игрока', desc:'Вражеская воздушная цель для проверки ПВО и противовоздушных атак игрока.', icon:'🛩️'},
+  spawn_targetGoblinAir: {name:'Летающая мишень · атаки гоблинов', desc:'Воздушная цель стороны игрока для проверки гоблинских зенитчиков. Обычные наземные гоблины её не атакуют.', icon:'🛡️'},
   spawn_explosion: {name:'Взрыв (урон)', desc:'Взрыв с уроном по площади. Повреждает врагов, ваши здания, жителей, солдат, лодки и транспортные вертолёты.', icon:'💥'},
 };
 
@@ -1527,9 +1535,9 @@ function popCap(){
 function countHumans(){
   // Boarding a boat/helicopter changes location, not population. Count resident humans
   // consistently for housing, food, happiness and achievements.
-  let total=0; for(const u of G.units) if(u && !u.robot && !u.drone && !u.isRepairDrone && !u.soldierType) total++; return total;
+  let total=0; for(const u of G.units) if(u && !u.isTestTarget && !u.robot && !u.drone && !u.isRepairDrone && !u.soldierType) total++; return total;
 }
-function countSoldiers(){ let total=0; for(const u of G.units) if(u && u.soldierType) total++; return total; }
+function countSoldiers(){ let total=0; for(const u of G.units) if(u && !u.isTestTarget && u.soldierType) total++; return total; }
 function addRes(k, v){
   if(!(k in G.res)) return;
   const old = G.res[k];
@@ -2019,6 +2027,8 @@ class Enemy {
     this.atk = et.atk; this.range = et.range; this.cooldown = et.cooldown;
     this.attackT = Math.random() * et.cooldown; this.speed = et.speed;
     this.ranged = !!et.ranged; this.projectile = et.projectile || 'arrow';
+    this.flying = !!et.flying; this.isTestTarget = !!et.testTarget;
+    this.testTargetKind = this.isTestTarget ? 'playerWeapons' : null;
     this.color = et.color; this.target = null; this.phase = Math.random() * 6.28;
     this.stuckT = 0; this.lx = x; this.ly = y; this.wallAttackCooldown = 0;
     this.unreachableTargetIds = new Set();
@@ -2345,6 +2355,8 @@ function damageTarget(target, dmg, fromPlayer, attackerTeam){
     }
   }
   if(target.hp === undefined){ const defHp = (target.def && target.def.hp) || 200; target.hp = defHp; target.maxHp = defHp; }
+  if(G.enemyBases.includes(target)&&target.kind==='ai')target.aiLastDamagedAt=Number(G.time)||0;
+  if(G.goblinBuildings.includes(target)&&target.ownerBaseId){const owner=G.enemyBases.find(base=>base&&base.id===target.ownerBaseId&&base.kind==='ai');if(owner)owner.aiLastDamagedAt=Number(G.time)||0;}
   target.hp -= dmg;
   if(G.units.includes(target)) target.lastDamageT = G.time;
   if(target.x !== undefined || target.px !== undefined){
@@ -2358,7 +2370,7 @@ function killTarget(target, fromPlayer){
   if(G.enemies.includes(target)){
     const idx = G.enemies.indexOf(target);
     if(idx >= 0) G.enemies.splice(idx, 1);
-    if(fromPlayer !== false){ G.totalKills++; SND.goblinDeath(); }
+    if(fromPlayer !== false && !target.isTestTarget){ G.totalKills++; SND.goblinDeath(); }
     const col = target.color || '#c04040';
     for(let i=0;i<6;i++) spawnParticle(target.x + (Math.random()-0.5)*10, target.y + (Math.random()-0.5)*10, col, {life:0.6, size:3, speed:30});
     return;
@@ -2425,10 +2437,12 @@ function killTarget(target, fromPlayer){
       for(let i=0;i<4;i++) spawnParticle(target.x + (Math.random()-0.5)*8, target.y + (Math.random()-0.5)*8, target.soldierColor || '#c08080', {life:0.5, size:2, speed:25});
       const wasSoldier = !!target.soldierType;
       const wasRepair = target.isRepairDrone;
+      const wasTestTarget = !!target.isTestTarget;
       G.units.splice(idx, 1);
       if(G.sel === target) G.sel = null;
       const gsu = G.selectedUnits.indexOf(target); if(gsu >= 0) G.selectedUnits.splice(gsu, 1);
-      if(!wasSoldier && !wasRepair && !target.robot){ G.civilianDeaths++; pushLog('💀 Житель погиб!', 'danger'); SND.civilianDeath(); }
+      if(wasTestTarget){ pushLog('🎯 Тестовая мишень уничтожена','info'); SND.explosion(); }
+      else if(!wasSoldier && !wasRepair && !target.robot){ G.civilianDeaths++; pushLog('💀 Житель погиб!', 'danger'); SND.civilianDeath(); }
       else { SND.goblinDeath(); }
     }
   }
@@ -3244,6 +3258,23 @@ function goblinTargetScore(e,target,distance){
   if(def && (def.spawnRate || def.resourceOutput || def.production)) bonus += TS*.26;
   if(['energyShield','teslaTurret','laserTurret','antiAirTurret','cannonTower','bigArtillery','largeArtillery'].includes(type)) bonus += TS*.34;
   if(e.def && e.def.siege && def) bonus += TS*.25;
+  // AI-base squads share a strategic target style: nearby target scoring reflects the base's current plan.
+  const aiBase=e.homeBaseId?G.enemyBases.find(base=>base&&base.id===e.homeBaseId&&base.kind==='ai'):null;
+  if(aiBase){
+    const style=aiBase.aiStrategy||e.aiAttackStyle||'assault';
+    if(aiBase.aiFocusTargetKey&&goblinAiTargetKey(target)===aiBase.aiFocusTargetKey)bonus+=TS*2.25;
+    if(G.buildings.includes(target)){
+      const isPower=Number(def&& (def.powerOutput||def.energySourceOutput||def.energyOutput)||0)>0||/generator|reactor|power/i.test(type);
+      const isEconomic=!!(def&&(def.resourceOutput||def.production||def.resourceRate||def.cat==='production'||def.cat==='industry'||def.cat==='resource'))||/mine|farm|lumber|factory|foundry|sawmill|quarry|drill/i.test(type);
+      const isDefence=!!(def&&(def.cat==='military'||def.range>0||def.antiAirOnly||def.manualSuperweapon));
+      if(style==='raidEconomy'&&isEconomic)bonus+=TS*.95;
+      if(style==='raidEconomy'&&isPower)bonus+=TS*.65;
+      if(style==='siege'&&isDefence)bonus+=TS*1.05;
+      if(style==='counterAir'&&(def&&def.antiAirOnly||/anti.?air|flak|missile|sam/i.test(type)))bonus+=TS*1.2;
+      if(style==='assault'&&(target===G.townHall||type==='townHall'))bonus+=TS*.9;
+    }
+    if(style==='defend'&&G.units.includes(target)&&Math.hypot((target.x||0)-aiBase.x,(target.y||0)-aiBase.y)<TS*12)bonus+=TS*.8;
+  }
   const hp=Number(target.hp),maxHp=Number(target.maxHp);
   if(Number.isFinite(hp)&&Number.isFinite(maxHp)&&maxHp>0&&hp/maxHp<.25) bonus += TS*.18;
   return distance-Math.min(TS*2.65,bonus);
@@ -3260,6 +3291,7 @@ function considerGoblinTarget(selection,e,target,d,scanRadius){
   if(score<selection.score){selection.score=score;selection.distance=d;selection.target=target;}
 }
 function updateEnemy(e, dt){
+  if(e && e.isTestTarget){ e.target=null; e.combatTarget=null; return; }
   if(e.def && e.def.worker){ updateGoblinWorker(e, dt); return; }
   // Support and specialist goblins perform their role before selecting a normal combat target.
   if(e.def && e.def.healer){
@@ -3368,9 +3400,16 @@ function updateEnemy(e, dt){
     // The old flow field ignored wall openings and attacked the first wall in the
     // downhill direction even when a gap was only a few tiles away.
     e.combatTarget=null;
-    const strategicTarget=(G.townHall && G.buildings.includes(G.townHall))
-      ? G.townHall
-      : G.buildings.find(b=>b && b.constructionT<=0 && !(typeof b.type==='string'&&b.type.startsWith('walls_')) && b.type!=='landMine' && b.type!=='bridge');
+    const aiBase=e.homeBaseId?G.enemyBases.find(base=>base&&base.id===e.homeBaseId&&base.kind==='ai'):null;
+    let strategicTarget=null;
+    if(aiBase&&aiBase.aiStrategy==='defend'){
+      strategicTarget=resolveGoblinAiTargetKey(aiBase.aiFocusTargetKey)||aiBase;
+    }else if(aiBase){
+      const focus=resolveGoblinAiTargetKey(aiBase.aiFocusTargetKey)||aiBase.aiFocusTarget;
+      strategicTarget=focus&&goblinTargetStillExists(focus)?focus:((G.townHall&&G.buildings.includes(G.townHall))?G.townHall:G.buildings.find(b=>b&&b.constructionT<=0&&!(typeof b.type==='string'&&b.type.startsWith('walls_'))&&b.type!=='landMine'&&b.type!=='bridge'));
+    }else{
+      strategicTarget=(G.townHall&&G.buildings.includes(G.townHall))?G.townHall:G.buildings.find(b=>b&&b.constructionT<=0&&!(typeof b.type==='string'&&b.type.startsWith('walls_'))&&b.type!=='landMine'&&b.type!=='bridge');
+    }
     if(strategicTarget){
       const routed=moveGoblinAlongTargetRoute(e,strategicTarget,dt);
       if(!routed){
@@ -3739,6 +3778,7 @@ function updateRepairWorker(u,dt){
 }
 
 function updateUnit(u, dt){
+  if(u && u.isTestTarget){ u.state='idle'; u.target=null; u.attackTarget=null; return; }
   if(u.inBoat || u.inHeli) return;
   if(u.dropCooldown > 0) u.dropCooldown -= dt;
   if(!u.robot && u.hp < u.maxHp){
@@ -4622,132 +4662,466 @@ function ensureGoblinEconomy(eb){
   eb.econ.researchT=Number.isFinite(eb.econ.researchT)?eb.econ.researchT:0;
 }
 function updateGoblinBaseAI(eb, dt){
-  if(!eb.hp || eb.hp <= 0) return;
-  eb.buildTimer = (eb.buildTimer || 0) + dt;
-  eb.waveTimer = (eb.waveTimer || 0) + dt;
-  eb.level = eb.level || 1;
-  const isStrategic = eb.kind === 'ai';
-  if(!isStrategic){
+  if(!eb.hp || eb.hp<=0)return;
+  eb.buildTimer=(eb.buildTimer||0)+dt;
+  eb.waveTimer=(eb.waveTimer||0)+dt;
+  eb.level=eb.level||1;
+  if(eb.kind!=='ai'){
     const interval=Math.max(18,40-eb.level*2);
-    if(eb.waveTimer>=interval){ eb.waveTimer=0; spawnGoblinRaid(eb,2+eb.level); }
-    if(eb.buildTimer>=15){ eb.buildTimer=0; tryGoblinBuild(eb); eb.level=Math.min(8,1+Math.floor(G.time/180)); }
+    if(eb.waveTimer>=interval){eb.waveTimer=0;spawnGoblinRaid(eb,2+eb.level);}
+    if(eb.buildTimer>=15){eb.buildTimer=0;tryGoblinBuild(eb);eb.level=Math.min(8,1+Math.floor(G.time/180));}
     return;
   }
   ensureGoblinEconomy(eb);
   const econ=eb.econ, owned=goblinBaseBuildings(eb);
   const count=t=>owned.filter(gb=>gb.type===t).length;
-  // Abstract workers gather resources continuously; visible camps/mines/farms increase their throughput.
-  econ.wood += (0.10 + count('goblinLumberyard')*0.72) * dt;
-  econ.stone += (0.07 + count('goblinMine')*0.48) * dt;
-  econ.food += (0.12 + count('goblinFarm')*0.62) * dt;
-  econ.iron += (0.015 + count('goblinMine')*0.095 + count('goblinWorkshop')*0.11) * dt;
-  econ.gold += (0.006 + count('goblinWorkshop')*0.085) * dt;
-  econ.researchT += dt;
-  const tier=econ.tier;
+  const workerList=G.enemies.filter(e=>e&&e.def&&e.def.worker&&e.homeBaseId===eb.id);
+  // Base economy grows through its production buildings and visible workers; strategic caps force investment instead of infinite stockpiling.
+  econ.wood+=(0.06+count('goblinLumberyard')*.62)*dt;
+  econ.stone+=(0.045+count('goblinMine')*.42)*dt;
+  econ.food+=(0.08+count('goblinFarm')*.56)*dt;
+  econ.iron+=(0.01+count('goblinMine')*.08+count('goblinWorkshop')*.095)*dt;
+  econ.gold+=(0.004+count('goblinWorkshop')*.065)*dt;
+  const tier=econ.tier||1;
+  const stocksCap=360+tier*155+Math.min(8,owned.length)*25;
+  for(const k of ['wood','stone','food','iron','gold'])econ[k]=clamp(Number(econ[k])||0,0,stocksCap);
   const researchCost={wood:70+tier*35,stone:35+tier*28,food:30+tier*20,iron:tier*9,gold:tier>=3?tier*3:0};
-  if(tier<6 && econ.researchT >= 52+tier*13 && Object.keys(researchCost).every(k=>econ[k] >= researchCost[k])){
-    for(const k in researchCost) econ[k]-=researchCost[k];
-    econ.tier++; econ.researchT=0;
-    pushLog(`🧠 Вражеская база развилась до уровня ${econ.tier}`, 'danger');
+  if(tier<6)econ.researchT=(econ.researchT||0)+dt;
+  else econ.researchT=0;
+  if(tier<6&&econ.researchT>=52+tier*13&&Object.keys(researchCost).every(k=>econ[k]>=researchCost[k])){
+    for(const k in researchCost)econ[k]-=researchCost[k];
+    econ.tier++;econ.researchT=0;
+    pushLog(`🧠 Вражеская база развилась до уровня ${econ.tier}`,'danger');
   }
-  eb.level=Math.min(8,Math.max(eb.level,1+Math.floor(G.time/180),econ.tier));
+  // Unlike the old time-only scaling, strategic AI levels now follow actual economic research.
+  eb.level=Math.min(8,1+Math.floor(((econ.tier||1)-1)*1.4));
+  eb.aiPhase=econ.tier<=2?'establishment':econ.tier<=4?'expansion':'war';
+  eb.aiStrategyThinkT=(Number(eb.aiStrategyThinkT)||0)+dt;
+  if(!eb.aiStrategy||eb.aiStrategyThinkT>=5){
+    eb.aiStrategyThinkT=0;
+    const threat=strategicGoblinPlayerThreat(true);
+    const proposedStrategy=chooseGoblinBaseStrategy(eb,owned,threat);
+    const strategyAge=Math.max(0,(Number(G.time)||0)-(Number(eb.aiStrategyChangedAt)||0));
+    const urgentSwitch=proposedStrategy==='defend'||(proposedStrategy==='counterAir'&&(threat.air||0)>=2);
+    const canSwitch=!eb.aiStrategy||proposedStrategy===eb.aiStrategy||strategyAge>=14||urgentSwitch;
+    const previous=eb.aiStrategy;
+    if(canSwitch)eb.aiStrategy=proposedStrategy;
+    if(!previous||previous!==eb.aiStrategy){
+      eb.aiStrategyChangedAt=G.time||0;
+      if(previous&&G.time-(eb.aiStrategyLogAt||-100)>22){
+        pushLog(`🧠 Гоблинская база меняет план: ${GOBLIN_AI_STRATEGY_NAMES[eb.aiStrategy]||eb.aiStrategy}`,'danger');
+        eb.aiStrategyLogAt=G.time||0;
+      }
+    }
+    // Refresh the focus every thinking cycle, but hold the strategic posture briefly
+    // so small threat-count changes don't make the entire army constantly retarget.
+    const focus=chooseGoblinAiFocusTarget(eb,eb.aiStrategy,threat);
+    eb.aiFocusTarget=focus||null;
+    eb.aiFocusTargetKey=goblinAiTargetKey(focus);
+    eb.aiCurrentPhaseLabel=eb.aiPhase;
+    eb.aiThreatSummary={air:threat.air,military:threat.military,defences:threat.defences,economy:threat.economy};
+  }
+  repairGoblinBase(eb,owned,dt);
   eb.workerSpawnT=(eb.workerSpawnT||0)+dt;
-  const visibleWorkers=G.enemies.filter(e=>e.def&&e.def.worker&&e.homeBaseId===eb.id);
-  const workerCap=Math.min(7,2+Math.floor((econ.tier-1)*0.9));
-  const workerSpawnInterval=visibleWorkers.length<2?2.5:Math.max(13,28-econ.tier*2.2);
-  if(visibleWorkers.length<workerCap && eb.workerSpawnT>=workerSpawnInterval){
+  const workerCap=Math.min(7,2+Math.floor((econ.tier-1)*.9));
+  const workerSpawnInterval=workerList.length<2?3.5:Math.max(14,29-econ.tier*2.1);
+  if(workerList.length<workerCap&&eb.workerSpawnT>=workerSpawnInterval){
     eb.workerSpawnT=0;
     for(let attempt=0;attempt<18;attempt++){
-      const ang=Math.random()*Math.PI*2, r=TS*(1.2+Math.random()*2.8);
-      const wx=eb.x+Math.cos(ang)*r, wy=eb.y+Math.sin(ang)*r;
-      if(!isWalkableTile(Math.floor(wx/TS),Math.floor(wy/TS))) continue;
+      const ang=Math.random()*Math.PI*2,r=TS*(1.2+Math.random()*2.8);
+      const wx=eb.x+Math.cos(ang)*r,wy=eb.y+Math.sin(ang)*r;
+      if(!isWalkableTile(Math.floor(wx/TS),Math.floor(wy/TS)))continue;
       const worker=new Enemy(wx,wy,'goblinWorker');
-      worker.homeBaseId=eb.id; worker.workerState='toJob'; worker.workerTimer=0;
-      worker.workerRole=['wood','food','stone','metal'][visibleWorkers.length%4];
-      G.enemies.push(worker); break;
+      worker.homeBaseId=eb.id;worker.workerState='toJob';worker.workerTimer=0;
+      worker.workerRole=chooseGoblinWorkerRole(eb,workerList,owned);
+      G.enemies.push(worker);workerList.push(worker);break;
     }
   }
   eb.evoT=(eb.evoT||0)+dt;
-  const interval=Math.max(14,34-eb.level*2-econ.tier*.7);
+  const interval=Math.max(15,35-eb.level*1.7-econ.tier*.5);
   if(eb.waveTimer>=interval){
     eb.waveTimer=0;
     const squad=Math.min(10,2+eb.level+Math.floor(econ.tier/2));
     spawnGoblinRaid(eb,squad);
   }
-  const buildInterval=Math.max(5.5,11-(econ.tier-1)*0.65);
-  if(eb.buildTimer>=buildInterval){ eb.buildTimer=0; tryGoblinBuild(eb); }
-}
+  const buildInterval=Math.max(6.5,12-(econ.tier-1)*.7);
+  if(eb.buildTimer>=buildInterval){eb.buildTimer=0;tryGoblinBuild(eb);}
+} 
 function spawnGoblinRaid(eb, count){
-  const isExp = eb.kind === 'ai';
-  const cap = Math.max(1, eb.maxEnemies || (isExp ? 42 : 30));
-  count = Math.min(Math.max(0,count|0), Math.max(0,cap-G.enemies.length));
-  if(count<=0) return;
+  const isExp=eb.kind==='ai';
+  const cap=Math.max(1,eb.maxEnemies||(isExp?48:30));
+  const combatCount=G.enemies.filter(e=>e&&!(e.def&&e.def.worker)).length;
+  if(isExp){
+    const baseCount=G.enemies.filter(e=>e&&e.homeBaseId===eb.id&&!(e.def&&e.def.worker)).length;
+    count=Math.min(Math.max(0,count|0),Math.max(0,cap-baseCount),Math.max(0,140-combatCount));
+  }else count=Math.min(Math.max(0,count|0),Math.max(0,cap-G.enemies.length));
+  if(count<=0)return;
+  const threat=isExp?strategicGoblinPlayerThreat(true):null;
+  const style=isExp?(eb.aiStrategy||'assault'):'';
+  const focusKey=isExp?(eb.aiFocusTargetKey||''):'';
+  eb.aiSquadSerial=(eb.aiSquadSerial||0)+1;
+  const squadId=isExp?`${eb.id}:${eb.aiSquadSerial}`:null;
   for(let i=0;i<count;i++){
-    let sp;
-    if(isExp){ sp={x:eb.x+(Math.random()-.5)*TS*4,y:eb.y+(Math.random()-.5)*TS*4}; }
-    else { const points=getSpawnPoints(); sp=points.length?points[Math.floor(Math.random()*points.length)]:{x:eb.x,y:eb.y}; }
-    let type='grunt'; const r=Math.random(); const lv=eb.level||1;
-    if(lv>=6 && r>(isExp ? 0.86 : 0.94)) type='warlord';
-    else if(lv>=4 && r>(isExp ? 0.75 : 0.88)) type='shaman';
-    else if(lv>=3 && r>(isExp ? 0.58 : 0.78)) type='brute';
-    else if(lv>=2 && r>(isExp ? 0.32 : 0.55)) type='archer';
-    const e=new Enemy(sp.x+(Math.random()-.5)*30,sp.y+(Math.random()-.5)*30,type);
+    let sp=null;
+    if(isExp){
+      for(let attempt=0;attempt<22;attempt++){
+        const ang=Math.random()*Math.PI*2,r=TS*(1.25+Math.random()*2.2);
+        const x=eb.x+Math.cos(ang)*r,y=eb.y+Math.sin(ang)*r,tx=Math.floor(x/TS),ty=Math.floor(y/TS);
+        if(!isWalkableTile(tx,ty)||getWallAt(x,y))continue;
+        sp={x,y};break;
+      }
+      if(!sp){const safe=typeof findNearestWalkable==='function'?findNearestWalkable(eb.x,eb.y):null;sp=safe?{x:safe.x*TS+TS/2,y:safe.y*TS+TS/2}:{x:eb.x,y:eb.y};}
+    }else{
+      const points=getSpawnPoints();sp=points.length?points[Math.floor(Math.random()*points.length)]:{x:eb.x,y:eb.y};
+    }
+    let type='grunt';const r=Math.random(),lv=eb.level||1;
+    if(isExp){
+      const airPressure=threat.air||0;
+      if(airPressure>0&&(style==='counterAir'||i%Math.max(2,5-Math.min(3,Math.floor(airPressure/2)))===0))type='antiAir';
+      else if(style==='siege'&&lv>=3&&(i%3===0||r>.72))type=lv>=5&&i%4===0?'warlord':'brute';
+      else if(style==='raidEconomy'&&lv>=2&&i%3===0)type='archer';
+      else if(lv>=4&&i%7===5)type='healer';
+      else if(lv>=4&&i%7===2)type='shaman';
+      else if(lv>=5&&i%6===4)type='summoner';
+      else if(lv>=5&&i%5===3)type='warlord';
+      else if(lv>=3&&(threat.military>=6?i%3===0:i%4===2))type='brute';
+      else if(lv>=2&&i%3===1)type='archer';
+      else if(lv>=3&&i%6===1)type='marksman';
+    }else{
+      if(lv>=6&&r>.94)type='warlord';
+      else if(lv>=4&&r>.88)type='shaman';
+      else if(lv>=3&&r>.78)type='brute';
+      else if(lv>=2&&r>.55)type='archer';
+    }
+    const e=new Enemy(sp.x+(Math.random()-.5)*12,sp.y+(Math.random()-.5)*12,type);
     const hpMult=(1+lv*.08)*DIFFICULTY[G.difficulty||'normal'].enemyHpMult;
-    e.hp*=hpMult; e.maxHp=e.hp; e.atk*=1+lv*.055;
+    e.hp*=hpMult;e.maxHp=e.hp;e.atk*=1+lv*.055;
+    if(isExp){e.homeBaseId=eb.id;e.aiAttackStyle=style;e.aiSquadId=squadId;e.aiFocusTargetKey=focusKey;e.aiSquadRole=(type==='antiAir'?'counterAir':(['brute','warlord','ogreChampion'].includes(type)?'siege':(['healer','shaman','summoner'].includes(type)?'support':'line')));}
     G.enemies.push(e);
   }
-  pushLog(`Гоблины идут в атаку! (${count})`,'danger'); SND.goblinBuild();
+  pushLog(isExp?`🧠 ИИ-база отправила отряд (${GOBLIN_AI_STRATEGY_NAMES[style]||style}, ${count})`:`Гоблины идут в атаку! (${count})`,'danger');SND.goblinBuild();
+}
+let goblinThreatCache = null;
+let goblinThreatCacheAt = -Infinity;
+const GOBLIN_AI_STRATEGY_NAMES = Object.freeze({
+  defend:'Оборона базы', counterAir:'Противодействие авиации', raidEconomy:'Рейд по экономике', siege:'Подавление обороны', assault:'Штурм ратуши'
+});
+function strategicGoblinPlayerThreat(force=false){
+  const now=Number(G.time)||0;
+  if(!force && goblinThreatCache && now>=goblinThreatCacheAt && now-goblinThreatCacheAt<1.4) return {...goblinThreatCache};
+  const units=G.units.filter(u=>u&&!u.isTestTarget&&!u.inBoat&&!u.inHeli);
+  const buildings=G.buildings.filter(b=>b&&b.constructionT<=0&&b.type!=='landMine'&&b.type!=='bridge');
+  const air=units.filter(isAirTarget).length+G.helis.filter(h=>h&&h.hp>0).length;
+  const military=units.filter(u=>!!u.soldierType||!!u.isRepairDrone||!!u.drone&&u.atk>0).length;
+  const repairs=units.filter(u=>u.isRepairDrone||u.job&&u.job.type==='repairWorkshop').length;
+  const defences=buildings.filter(b=>{const d=b.def||BUILDINGS[b.type]||{};return d.cat==='military'||Number(d.range)>0||d.antiAirOnly||d.manualSuperweapon;}).length;
+  const airDefences=buildings.filter(b=>{const d=b.def||BUILDINGS[b.type]||{};return !!d.antiAirOnly||/anti.?air|flak|sam/i.test(String(b.type||''));}).length;
+  const power=buildings.filter(b=>{const d=b.def||BUILDINGS[b.type]||{};return Number(d.powerOutput||d.energySourceOutput||d.energyOutput||0)>0||/generator|reactor|power/i.test(String(b.type||''));}).length;
+  const economy=buildings.filter(b=>{const d=b.def||BUILDINGS[b.type]||{};return !!(d.resourceOutput||d.production||d.resourceRate||d.cat==='production'||d.cat==='industry'||d.cat==='resource')||(/mine|farm|lumber|factory|foundry|sawmill|quarry|drill/i.test(String(b.type||'')));}).length;
+  const workers=units.filter(u=>!u.soldierType&&!u.robot&&!u.drone&&!u.isRepairDrone).length;
+  const townHallHp=G.townHall&&G.townHall.maxHp>0?clamp((G.townHall.hp||0)/G.townHall.maxHp,0,1):1;
+  goblinThreatCache={air,military,repairs,total:units.length,defences,airDefences,power,economy,workers,townHallHp};
+  goblinThreatCacheAt=now;
+  return {...goblinThreatCache};
+}
+function goblinAiTargetKey(target){
+  if(!target)return '';
+  if(G.buildings.includes(target)) return `b:${target.type||'building'}:${target.tx}:${target.ty}`;
+  if(G.units.includes(target)){
+    if(Number.isFinite(target.id))return `u:${target.id}`;
+    return `u:${target.type||target.soldierType||'unit'}:${Math.floor((target.x||0)/TS)}:${Math.floor((target.y||0)/TS)}`;
+  }
+  return '';
+}
+function resolveGoblinAiTargetKey(key){
+  if(!key)return null;
+  for(const b of G.buildings) if(goblinAiTargetKey(b)===key && b.hp>0 && b.constructionT<=0)return b;
+  for(const u of G.units) if(goblinAiTargetKey(u)===key && u.hp>0)return u;
+  return null;
+}
+function chooseGoblinWorkerRole(eb, workers, owned){
+  ensureGoblinEconomy(eb);
+  const eco=eb.econ, tier=eco.tier||1;
+  const workerList=workers||G.enemies.filter(e=>e&&e.def&&e.def.worker&&e.homeBaseId===eb.id);
+  const buildingList=owned||goblinBaseBuildings(eb);
+  const targets={wood:150+tier*32,food:125+tier*28,stone:95+tier*24,metal:45+tier*16};
+  const sources={
+    wood:buildingList.filter(b=>b.type==='goblinLumberyard').length,
+    food:buildingList.filter(b=>b.type==='goblinFarm').length,
+    stone:buildingList.filter(b=>b.type==='goblinMine').length,
+    metal:buildingList.filter(b=>b.type==='goblinWorkshop'||b.type==='goblinMine').length
+  };
+  let best='wood',bestScore=-Infinity;
+  for(const role of ['wood','food','stone','metal']){
+    const current=Number(eco[role==='metal'?'iron':role])||0;
+    const workersOnRole=workerList.filter(w=>w.workerRole===role).length;
+    const shortfall=(targets[role]-current)/Math.max(1,targets[role]);
+    let score=shortfall*2.6-workersOnRole*.52;
+    if(!sources[role])score-=.9;
+    if(role==='metal'&&tier<2)score-=.8;
+    if(role==='food'&&current<55)score+=.45;
+    if(role==='wood'&&current<50)score+=.5;
+    if(role==='stone'&&(Number(eco.stone)<55||Number(eco.iron)<20))score+=.35;
+    if(score>bestScore){bestScore=score;best=role;}
+  }
+  return best;
+}
+function chooseGoblinBaseStrategy(eb, owned, threat){
+  const tier=eb.econ&&eb.econ.tier||1;
+  const count=type=>(owned||[]).reduce((n,b)=>n+(b.type===type?1:0),0);
+  const nearUnits=G.units.filter(u=>u&&!u.isTestTarget&&!u.inBoat&&!u.inHeli&&Math.hypot(u.x-eb.x,u.y-eb.y)<TS*11);
+  const recentlyHit=Number.isFinite(eb.aiLastDamagedAt)&&eb.aiLastDamagedAt>0&&(G.time-eb.aiLastDamagedAt)<14;
+  if(nearUnits.length>=1||recentlyHit){
+    const nearest=nearUnits.slice().sort((a,b)=>Math.hypot(a.x-eb.x,a.y-eb.y)-Math.hypot(b.x-eb.x,b.y-eb.y))[0];
+    if(nearest){eb.aiThreatX=nearest.x/TS;eb.aiThreatY=nearest.y/TS;}
+    return 'defend';
+  }
+  const desiredFlak=Math.min(10,1+Math.floor(tier/2)+Math.ceil((threat.air||0)/2));
+  if(threat.air>=2 && count('goblinFlakTower')<desiredFlak)return 'counterAir';
+  if(tier>=2 && threat.defences>=2 && threat.defences>=Math.max(1,threat.economy*.62))return 'raidEconomy';
+  if(tier>=3 && threat.military>=5)return 'siege';
+  if(tier<=2 || threat.economy>=threat.defences)return 'raidEconomy';
+  return 'assault';
+}
+function chooseGoblinAiFocusTarget(eb, strategy, threat){
+  const baseIsland=typeof getIslandAt==='function'?getIslandAt(eb.x,eb.y):-1;
+  if(strategy==='defend'){
+    const local=G.units.filter(u=>u&&!u.isTestTarget&&!u.inBoat&&!u.inHeli&&u.hp>0&&Math.hypot(u.x-eb.x,u.y-eb.y)<TS*13);
+    local.sort((a,b)=>{
+      const rank=u=>(u.soldierType?4:0)+(isAirTarget(u)?5:0)+(u.atk>25?2:0)+(u.hp<u.maxHp*.35?1:0)-Math.hypot(u.x-eb.x,u.y-eb.y)/(TS*8);
+      return rank(b)-rank(a);
+    });
+    return local[0]||null;
+  }
+  const candidates=G.buildings.filter(b=>b&&b.hp>0&&b.constructionT<=0&&b.type!=='landMine'&&b.type!=='bridge'&&!(typeof b.type==='string'&&b.type.startsWith('walls_')));
+  let best=null,bestScore=-Infinity;
+  for(const b of candidates){
+    if(baseIsland>=0&&typeof getIslandTile==='function'){
+      const island=getIslandTile(b.tx,b.ty);
+      if(island>=0&&island!==baseIsland)continue;
+    }
+    const d=b.def||BUILDINGS[b.type]||{};
+    const type=String(b.type||'');
+    const dist=Math.hypot((b.px??b.tx*TS)-(eb.x),(b.py??b.ty*TS)-(eb.y))/TS;
+    let score=18-dist*.42;
+    const isPower=Number(d.powerOutput||d.energySourceOutput||d.energyOutput||0)>0||/generator|reactor|power/i.test(type);
+    const isEconomy=!!(d.resourceOutput||d.production||d.resourceRate||d.cat==='production'||d.cat==='industry'||d.cat==='resource')||/mine|farm|lumber|factory|foundry|sawmill|quarry|drill/i.test(type);
+    const isDefence=d.cat==='military'||Number(d.range)>0||d.antiAirOnly||d.manualSuperweapon;
+    if(b===G.townHall||type==='townHall')score+=strategy==='assault'?125:strategy==='defend'?18:35;
+    if(strategy==='raidEconomy'){
+      if(isPower)score+=78;
+      if(isEconomy)score+=64;
+      if(d.spawnRate)score+=22;
+    }else if(strategy==='siege'){
+      if(isDefence)score+=84;
+      if(isPower)score+=20;
+    }else if(strategy==='counterAir'){
+      if(d.antiAirOnly||/anti.?air|flak|missile|sam/i.test(type))score+=94;
+      if(isPower)score+=25;
+    }else if(strategy==='assault'){
+      if(isDefence)score+=12;
+      if(isPower)score+=8;
+    }
+    if(Number.isFinite(b.hp)&&Number.isFinite(b.maxHp)&&b.maxHp>0)score+=(1-clamp(b.hp/b.maxHp,0,1))*10;
+    if(score>bestScore){bestScore=score;best=b;}
+  }
+  return best;
+}
+function repairGoblinBase(eb, owned, dt){
+  eb.aiRepairT=(Number(eb.aiRepairT)||0)+dt;
+  if(eb.aiRepairT<3.2)return;
+  eb.aiRepairT=0;
+  const candidates=[];
+  if(eb.maxHp>0&&eb.hp<eb.maxHp*.92)candidates.push({obj:eb,kind:'base',priority:18});
+  for(const b of owned){
+    if(!b||!Number.isFinite(b.hp)||!Number.isFinite(b.maxHp)||b.maxHp<=0||b.hp>=b.maxHp*.82)continue;
+    const d=b.def||GOBLIN_BUILDINGS[b.type]||{};
+    const priority=(d.cat==='military'||d.range?16:0)+(b.type==='goblinBarracks'?7:0)+(b.type==='goblinLumberyard'||b.type==='goblinMine'||b.type==='goblinFarm'?5:0);
+    candidates.push({obj:b,kind:'building',priority});
+  }
+  candidates.sort((a,b)=>(((1-a.obj.hp/a.obj.maxHp)*100+a.priority)-((1-b.obj.hp/b.obj.maxHp)*100+b.priority))*-1);
+  for(const item of candidates){
+    const target=item.obj,missing=Math.max(0,(target.maxHp||0)-(target.hp||0));
+    const amount=Math.min(38,missing);
+    const woodCost=Math.max(1,Math.ceil(amount/25));
+    const stoneCost=Math.max(1,Math.ceil(amount/45));
+    if(eb.econ.wood<woodCost||eb.econ.stone<stoneCost)continue;
+    eb.econ.wood-=woodCost;eb.econ.stone-=stoneCost;
+    target.hp=Math.min(target.maxHp,target.hp+amount);
+    const x=Number.isFinite(target.px)?target.px:target.x,y=Number.isFinite(target.py)?target.py:target.y;
+    if(Number.isFinite(x)&&Number.isFinite(y))spawnParticle(x,y,'rgba(110,190,105,0.65)',{life:.38,size:3,speed:12});
+    return true;
+  }
+  return false;
+}
+function strategicGoblinBuildPlan(eb,owned){
+  ensureGoblinEconomy(eb);
+  const eco=eb.econ, tier=eco.tier||1, threat=strategicGoblinPlayerThreat();
+  const count=type=>owned.reduce((n,b)=>n+(b.type===type?1:0),0);
+  const closeThreat=G.units.some(u=>u&&!u.isTestTarget&&!u.inBoat&&!u.inHeli&&Math.hypot(u.x-eb.x,u.y-eb.y)<TS*11);
+  const recentDamage=Number.isFinite(eb.aiLastDamagedAt)&&eb.aiLastDamagedAt>0&&(G.time-eb.aiLastDamagedAt)<18;
+  const urgentDefense=(closeThreat||recentDamage)?52:0;
+  const plan=[];
+  const add=(type,score,reason)=>{ if(GOBLIN_BUILDINGS[type] && Number.isFinite(score)) plan.push({type,score,reason}); };
+  // Core economy is planned first; resource shortages increase the matching production need.
+  const lumberMax=Math.min(4,tier<2?2:tier<4?3:4);
+  const farmMax=Math.min(4,1+Math.floor(tier/2));
+  const mineMax=Math.min(4,1+Math.floor((tier+1)/2));
+  const workshopMax=tier>=2?Math.min(3,1+Math.floor((tier-2)/2)):0;
+  const barracksMax=Math.min(4,1+Math.floor((tier-1)/1.7));
+  if(count('goblinLumberyard')<lumberMax) add('goblinLumberyard',112-count('goblinLumberyard')*8+(eco.wood<70?24:0),'wood economy');
+  if(count('goblinFarm')<farmMax) add('goblinFarm',108-count('goblinFarm')*9+(eco.food<65?28:0),'food economy');
+  if(count('goblinMine')<mineMax) add('goblinMine',104-count('goblinMine')*8+(eco.stone<55?24:0)+(eco.iron<20?8:0),'stone and metal economy');
+  if(count('goblinBarracks')<barracksMax) add('goblinBarracks',96-count('goblinBarracks')*10+(tier>=3?5:0),'army production');
+  if(tier>=2 && count('goblinWorkshop')<workshopMax) add('goblinWorkshop',92-count('goblinWorkshop')*8+(eco.iron<24||eco.gold<8?15:0),'advanced materials');
+  // Low stock is a reason to add production even after the minimum economy is built.
+  if(eco.wood<42 && count('goblinLumberyard')<4) add('goblinLumberyard',93,'wood reserve low');
+  if(eco.food<38 && count('goblinFarm')<4) add('goblinFarm',95,'food reserve low');
+  if(eco.stone<32 && count('goblinMine')<4) add('goblinMine',90,'stone reserve low');
+  if(tier>=2 && (eco.iron<16||eco.gold<6) && count('goblinWorkshop')<3) add('goblinWorkshop',86,'metal reserve low');
+  // Defence responds to what the player actually fields instead of building random flak towers.
+  const desiredFlak=Math.min(10,1+Math.floor(tier/2)+Math.ceil(threat.air/2));
+  if((threat.air>0 || tier>=3) && count('goblinFlakTower')<desiredFlak) add('goblinFlakTower',(threat.air>0?101+Math.min(12,threat.air*2):70)+(urgentDefense*.62),'anti-air response');
+  const nearbyThreat=G.units.some(u=>u&&!u.isTestTarget&&Math.hypot(u.x-eb.x,u.y-eb.y)<TS*12);
+  const desiredTurrets=Math.min(14,2+tier*2+(nearbyThreat?2:0));
+  if(count('goblinTurret')<desiredTurrets) add('goblinTurret',82+(nearbyThreat?14:0)-count('goblinTurret')*2+urgentDefense,'perimeter defense');
+  if(tier>=2 && count('goblinWall')<Math.min(16,2+tier*2) && (count('goblinTurret')>=2 || nearbyThreat)) add('goblinWall',55+(nearbyThreat?12:0)-count('goblinWall')+urgentDefense*.28,'defensive perimeter');
+  // If the base is well developed, keep reinvesting into the weakest economic branch before adding surplus walls.
+  if(plan.length===0){
+    if(eco.food<eco.wood && count('goblinFarm')<4) add('goblinFarm',52,'balance production');
+    if(eco.wood<=eco.stone && count('goblinLumberyard')<4) add('goblinLumberyard',50,'balance production');
+    if(count('goblinMine')<4) add('goblinMine',42,'continued expansion');
+    if(count('goblinBarracks')<4) add('goblinBarracks',40,'army expansion');
+    if(count('goblinTurret')<14) add('goblinTurret',34,'defensive expansion');
+  }
+  // Stable tie-breaking keeps the planner consistent across build ticks.
+  plan.sort((a,b)=>b.score-a.score || a.type.localeCompare(b.type));
+  const seen=new Set();
+  return plan.filter(p=>{if(seen.has(p.type))return false;seen.add(p.type);return true;});
+}
+function strategicGoblinTileScore(eb,type,tx,ty,owned){
+  if(tx<1||ty<1||tx>=MW-1||ty>=MH-1||!terrain[ty]||!terrain[ty][tx])return -Infinity;
+  const tile=terrain[ty][tx].t;
+  if(type==='goblinBridge'){
+    if(tile!=='water'||(bridgeGrid[ty]&&bridgeGrid[ty][tx]))return -Infinity;
+  }else if(tile==='water'||tile==='mountain')return -Infinity;
+  if(roadGrid[ty]&&roadGrid[ty][tx])return -Infinity;
+  const playerBuildings=G.buildings.some(b=>{const sz=(b.def&&b.def.size)||1;return tx>=b.tx-1&&tx<b.tx+sz+1&&ty>=b.ty-1&&ty<b.ty+sz+1;});
+  if(playerBuildings)return -Infinity;
+  const occupied=G.goblinBuildings.some(b=>b.tx===tx&&b.ty===ty);
+  if(occupied)return -Infinity;
+  const bx=Math.floor(eb.x/TS),by=Math.floor(eb.y/TS),r=Math.hypot(tx-bx,ty-by);
+  if(r<2.4||r>12)return -Infinity;
+  const isDefence=type==='goblinTurret'||type==='goblinFlakTower'||type==='goblinWall';
+  const preferred=isDefence?(type==='goblinWall'?7.5:6.5):4.7;
+  let score=16-Math.abs(r-preferred)*4;
+  // Keep the base coherent but leave one tile of breathing room around other buildings.
+  let near=0,adjacent=0,wallNeighbours=0;
+  for(const b of owned){
+    const d=Math.hypot(b.tx-tx,b.ty-ty);
+    if(d<5)near++;
+    if(d<1.5)adjacent++;
+    if(b.type==='goblinWall'&&Math.abs(b.tx-tx)+Math.abs(b.ty-ty)===1)wallNeighbours++;
+  }
+  score+=Math.min(7,near*1.2)-adjacent*5;
+  const px=Number.isFinite(eb.aiThreatX)?eb.aiThreatX:(G.playerStart?G.playerStart.tx:MW*.5),py=Number.isFinite(eb.aiThreatY)?eb.aiThreatY:(G.playerStart?G.playerStart.ty:MH*.5);
+  const vx=px-bx,vy=py-by,vl=Math.hypot(vx,vy)||1;
+  const dot=((tx-bx)*vx+(ty-by)*vy)/(Math.max(.001,r)*vl);
+  score+=isDefence?dot*9:-dot*1.5;
+  if(type==='goblinMine'){
+    let closest=99;for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const n=nodes[ty+dy]&&nodes[ty+dy][tx+dx];if(n&&isDeposit(n.type))closest=Math.min(closest,Math.hypot(dx,dy));}
+    score+=Math.max(0,5-closest)*1.7;
+  }
+  if(type==='goblinWall'){
+    if(owned.some(b=>b.type==='goblinWall')){
+      if(wallNeighbours===0)return -Infinity;
+      score+=wallNeighbours*22;
+    }else score+=dot*12;
+  }
+  // Tiny deterministic tie-breaker: different options are preferred, but never by blind random placement.
+  const h=((tx+1)*73856093 ^ (ty+1)*19349663 ^ (String(type).length*83492791) ^ ((eb.tx||0)*2654435761))>>>0;
+  score+=(h%1000)/100000;
+  return score;
+}
+function findStrategicGoblinBuildTile(eb,type,owned){
+  const bx=Math.floor(eb.x/TS),by=Math.floor(eb.y/TS),cells=[];
+  const wallCount=owned.filter(b=>b.type==='goblinWall').length;
+  for(let r=2;r<=12;r++){
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
+      const tx=bx+dx,ty=by+dy,score=strategicGoblinTileScore(eb,type,tx,ty,owned);
+      if(Number.isFinite(score))cells.push({tx,ty,score});
+    }
+  }
+  // If starting a wall perimeter, place its first segment on the player-facing side. Further pieces extend it contiguously.
+  if(type==='goblinWall'&&wallCount>0){
+    const adjacent=cells.filter(c=>owned.some(b=>b.type==='goblinWall'&&Math.abs(b.tx-c.tx)+Math.abs(b.ty-c.ty)===1));
+    if(adjacent.length) return adjacent.sort((a,b)=>b.score-a.score)[0]||null;
+    return null;
+  }
+  cells.sort((a,b)=>b.score-a.score);
+  return cells[0]||null;
 }
 function tryStrategicGoblinBuild(eb){
   ensureGoblinEconomy(eb);
-  const eco=eb.econ, owned=goblinBaseBuildings(eb), level=eco.tier||1;
-  const count=t=>owned.filter(gb=>gb.type===t).length;
-  const candidates=[];
-  // Economy first, then a balanced mix of military production and perimeter defense.
-  if(count('goblinLumberyard') < Math.min(4,1+Math.floor(level/1.5))) candidates.push('goblinLumberyard');
-  if(count('goblinFarm') < Math.min(4,1+Math.floor((level-1)/1.7))) candidates.push('goblinFarm');
-  if(count('goblinMine') < Math.min(4,1+Math.floor(level/2))) candidates.push('goblinMine');
-  if(count('goblinBarracks') < Math.min(3,1+Math.floor((level-1)/2))) candidates.push('goblinBarracks');
-  if(level>=2 && count('goblinWorkshop') < Math.min(3,Math.floor(level/2))) candidates.push('goblinWorkshop');
-  if(level>=2 && count('goblinFlakTower') < Math.min(10,2+Math.floor(level/1.2))) candidates.push('goblinFlakTower');
-  if(count('goblinTurret') < Math.min(14,2+level*2)) candidates.push('goblinTurret');
-  if(level>=3 && count('goblinBarracks') < 4) candidates.push('goblinBarracks');
-  if(level>=2 && count('goblinWall') < Math.min(28,level*4)) candidates.push('goblinWall');
-  // After required buildings exist, expand production and repair weak points rather than stopping.
-  if(Math.random()<.34) candidates.push(level>=3?'goblinWorkshop':'goblinLumberyard');
-  if(Math.random()<.35) candidates.push('goblinFarm');
-  if(Math.random()<.35) candidates.push('goblinMine');
-  if(Math.random()<.45) candidates.push('goblinTurret');
-  if(level>=3 && Math.random()<.32) candidates.push('goblinFlakTower');
-  if(level>=2 && Math.random()<.55) candidates.push('goblinWall');
-  if(Math.random()<.10) candidates.push('goblinBridge');
-  const seen=new Set();
-  for(const type of candidates){
-    if(seen.has(type)) continue; seen.add(type);
-    const cost=GOBLIN_BUILD_COSTS[type]||{};
-    if(Object.keys(cost).some(k=>(eco[k]||0)<cost[k])) continue;
-    for(let attempt=0;attempt<28;attempt++){
-      const baseTx=Math.floor(eb.x/TS), baseTy=Math.floor(eb.y/TS);
-      const r=(type==='goblinWall'?2:3)+Math.floor(Math.random()*(type==='goblinWall'?3:5));
-      const ang=Math.random()*Math.PI*2;
-      const tx=baseTx+Math.round(Math.cos(ang)*r), ty=baseTy+Math.round(Math.sin(ang)*r);
-      if(tx<1||ty<1||tx>=MW-1||ty>=MH-1) continue;
-      const tt=terrain[ty][tx].t;
-      if(type==='goblinBridge') { if(tt!=='water'||bridgeGrid[ty][tx]) continue; }
-      else if(tt==='water'||tt==='mountain') continue;
-      if(G.buildings.some(b=>{const sz=(b.def&&b.def.size)||1;return tx>=b.tx&&tx<b.tx+sz&&ty>=b.ty&&ty<b.ty+sz;})) continue;
-      if(G.goblinBuildings.some(gb=>gb.tx===tx&&gb.ty===ty)) continue;
-      if(roadGrid[ty]&&roadGrid[ty][tx]) continue;
-      const def=GOBLIN_BUILDINGS[type];
-      const gb={type,def,tx,ty,px:tx*TS+TS/2,py:ty*TS+TS/2,hp:def.hp,maxHp:def.hp,attackT:0,spawnT:0,ownerBaseId:eb.id};
-      G.goblinBuildings.push(gb);
-      for(const k in cost) eco[k]-=cost[k];
-      if(type==='goblinBridge'){bridgeGrid[ty][tx]=true;computeIslands();invalidatePathCache();}
-      if(type==='goblinWall') rebuildWallGrid();
-      SND.goblinBuild(); pushLog(`Вражеская база строит: ${def.name}`,'warn');
-      return true;
+  const eco=eb.econ, owned=goblinBaseBuildings(eb), plan=strategicGoblinBuildPlan(eb,owned);
+  const tier=eco.tier||1;
+  // Reserve resources for the next research tier once its timer is well underway.
+  // Without this reserve the base can endlessly spend wood on perimeter buildings
+  // and remain tier 1 forever despite having a healthy economy.
+  const researchCost={wood:70+tier*35,stone:35+tier*28,food:30+tier*20,iron:tier*9,gold:tier>=3?tier*3:0};
+  const researchDuration=52+tier*13;
+  const researchReadyForReserve=tier<6&&(Number(eco.researchT)||0)>=researchDuration*.52;
+  const localThreat=G.units.some(u=>u&&!u.isTestTarget&&!u.inBoat&&!u.inHeli&&u.hp>0&&Math.hypot(u.x-eb.x,u.y-eb.y)<TS*11);
+  const recentDamage=Number.isFinite(eb.aiLastDamagedAt)&&eb.aiLastDamagedAt>0&&(G.time-eb.aiLastDamagedAt)<12;
+  const emergency=localThreat||recentDamage;
+  let skippedForResearch=false;
+  eb.aiResearchReserveActive=!!researchReadyForReserve;
+  eb.aiCurrentGoal=plan.length?plan[0].type:null;
+  eb.aiCurrentReason=plan.length?plan[0].reason:'Экономика сбалансирована';
+  for(const entry of plan){
+    const type=entry.type,cost=GOBLIN_BUILD_COSTS[type]||{};
+    if(Object.keys(cost).some(k=>(eco[k]||0)<cost[k]))continue;
+    if(researchReadyForReserve){
+      const emergencyDefense=emergency&&['goblinTurret','goblinFlakTower','goblinWall'].includes(type);
+      // Do not let the research reserve deadlock the economy itself. If a resource
+      // is below the next-tier cost, allow the matching production building to be
+      // added (while caps in strategicGoblinBuildPlan still apply).
+      const recoveringResource = Object.keys(researchCost).some(k=>{
+        if((researchCost[k]||0)<=0||(eco[k]||0)>=(researchCost[k]||0))return false;
+        if(k==='wood')return type==='goblinLumberyard';
+        if(k==='food')return type==='goblinFarm';
+        if(k==='stone')return type==='goblinMine';
+        if(k==='iron')return type==='goblinMine'||(tier>=2&&type==='goblinWorkshop');
+        if(k==='gold')return tier>=2&&type==='goblinWorkshop';
+        return false;
+      });
+      // Under attack, defence can spend down to 45% of the reserve. During normal
+      // growth, only matching recovery production may cross the full reserve.
+      const reserveMultiplier=emergencyDefense ? 0.45 : (recoveringResource ? 0 : 1);
+      const wouldBreakReserve=Object.keys(researchCost).some(k=>{
+        const required=(researchCost[k]||0)*reserveMultiplier;
+        return required>0&&(eco[k]||0)-(cost[k]||0)<required;
+      });
+      if(wouldBreakReserve){skippedForResearch=true;continue;}
     }
+    const tile=findStrategicGoblinBuildTile(eb,type,owned);
+    if(!tile)continue;
+    const def=GOBLIN_BUILDINGS[type];
+    const gb={type,def,tx:tile.tx,ty:tile.ty,px:tile.tx*TS+TS/2,py:tile.ty*TS+TS/2,hp:def.hp,maxHp:def.hp,attackT:0,spawnT:0,ownerBaseId:eb.id,aiBuildReason:entry.reason};
+    G.goblinBuildings.push(gb);
+    eb.aiLastBuildType=type;eb.aiLastBuildAt=G.time||0;eb.aiCurrentGoal=null;
+    for(const k in cost)eco[k]-=cost[k];
+    if(type==='goblinBridge'){bridgeGrid[tile.ty][tile.tx]=true;computeIslands();invalidatePathCache();}
+    if(type==='goblinWall')rebuildWallGrid();
+    SND.goblinBuild();pushLog(`Вражеская база развивает экономику/оборону: ${def.name}`,'warn');
+    return true;
   }
+  if(skippedForResearch){
+    eb.aiCurrentGoal='research';
+    eb.aiCurrentReason=emergency?'Укрепляет базу, сохраняя ресурсы для исследования':'Накопление ресурсов для следующего технологического уровня';
+  }
+  eb.lastBuildBlockedAt=G.time;
   return false;
 }
 function tryGoblinBuild(eb){
@@ -7152,8 +7526,34 @@ function drawBuildingFinish(b, sx, sy, s){
   ctx.restore();
 }
 
-// =================== UNIT (3 LOD) ===================
+// Distinctive non-moving target prop used by the creative testing tools.
+function drawTestTarget(t, sx, sy, s, enemySide){
+  const air=!!(t.testTargetAir || t.flying || t.type==='targetDummyAir');
+  const color=enemySide?'#ed655b':'#66dfab';
+  const dark=enemySide?'#6e252a':'#195744';
+  ctx.save();
+  // Shadow remains on the terrain for flying targets, so the altitude is visually clear.
+  ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(sx,sy+s*(air?.40:.24),s*.26,s*.09,0,0,Math.PI*2); ctx.fill();
+  const cy=sy-(air?s*.20:0), r=Math.max(5,s*.23);
+  ctx.fillStyle=dark; ctx.beginPath(); ctx.arc(sx,cy,r*1.24,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=color; ctx.beginPath(); ctx.arc(sx,cy,r,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#f7f2d0'; ctx.lineWidth=Math.max(1.2,s*.035); ctx.beginPath(); ctx.arc(sx,cy,r*.67,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle=dark; ctx.lineWidth=Math.max(1.2,s*.045); ctx.beginPath(); ctx.moveTo(sx-r*1.4,cy); ctx.lineTo(sx+r*1.4,cy); ctx.moveTo(sx,cy-r*1.4); ctx.lineTo(sx,cy+r*1.4); ctx.stroke();
+  if(air){
+    ctx.fillStyle='#c9e9f2'; ctx.beginPath();ctx.moveTo(sx-r*.55,cy);ctx.lineTo(sx-r*1.7,cy-r*.5);ctx.lineTo(sx-r*1.45,cy+r*.22);ctx.lineTo(sx-r*.45,cy+r*.22);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(sx+r*.55,cy);ctx.lineTo(sx+r*1.7,cy-r*.5);ctx.lineTo(sx+r*1.45,cy+r*.22);ctx.lineTo(sx+r*.45,cy+r*.22);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(220,245,255,.95)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.ellipse(sx,cy,r*1.8,r*.95,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  }
+  if(Number.isFinite(t.hp)&&Number.isFinite(t.maxHp)&&t.hp<t.maxHp){
+    const frac=clamp(t.hp/Math.max(1,t.maxHp),0,1),bw=Math.max(12,s*.6),bh=Math.max(2,s*.055);
+    ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(sx-bw/2,cy-r*1.8,bw,bh);
+    ctx.fillStyle=frac>.5?'#7fe08a':frac>.25?'#e8c15d':'#f05a5a';ctx.fillRect(sx-bw/2,cy-r*1.8,bw*frac,bh);
+  }
+  if(getLOD()===2 && s>18){ctx.font=`bold ${Math.max(8,s*.16)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle='#f6f5e8';ctx.fillText(air?'AIR TARGET':'TARGET',sx,cy-r*1.95);}
+  ctx.restore();
+}
 function drawUnit(u, sx, sy, s){
+  if(u && u.isTestTarget){ drawTestTarget(u,sx,sy,s,false); return; }
   const cx = sx, cy = sy;
   const lod = getLOD();
   if(lod === 0){
@@ -7285,6 +7685,7 @@ function drawUnit(u, sx, sy, s){
 
 // =================== ENEMY (3 LOD) ===================
 function drawEnemy(e, sx, sy, s){
+  if(e && e.isTestTarget){ drawTestTarget(e,sx,sy,s,true); return; }
   const cx = sx, cy = sy;
   const lod = getLOD();
   if(lod === 0){
@@ -7882,6 +8283,28 @@ function render(){
     ctx.font = '11px sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
     ctx.fillText(lod === 0 ? 'LOD: FAR' : 'LOD: MID', W - 10, 10);
   }
+  // Optional tactical coordinates: show zero-based tile coordinates and highlight the hovered cell.
+  // Rendered only when enabled, keeping the default UI and FPS cost unchanged.
+  if(SETTINGS.showCoordinates && G.gameStarted && G.mouse.inside &&
+     !(typeof cursorOverInterface==='function' && cursorOverInterface(G.mouse.x,G.mouse.y))){
+    const cwx=(G.mouse.x-ox)/z, cwy=(G.mouse.y-oy)/z;
+    const ctxX=Math.floor(cwx/TS), ctxY=Math.floor(cwy/TS);
+    if(ctxX>=0 && ctxY>=0 && ctxX<MW && ctxY<MH){
+      const hx=ctxX*TS*z+ox, hy=ctxY*TS*z+oy;
+      ctx.save();
+      ctx.fillStyle='rgba(115,210,255,.07)'; ctx.fillRect(hx,hy,TS*z,TS*z);
+      ctx.strokeStyle='rgba(145,225,255,.95)'; ctx.lineWidth=Math.max(1.2,1.5*z);
+      ctx.strokeRect(hx+0.5,hy+0.5,Math.max(1,TS*z-1),Math.max(1,TS*z-1));
+      const label=`X: ${ctxX}  Y: ${ctxY}`;
+      ctx.font='bold 12px ui-monospace, SFMono-Regular, Consolas, monospace';
+      ctx.textAlign='left'; ctx.textBaseline='top';
+      const tw=ctx.measureText(label).width, bx=Math.min(W-tw-18,Math.max(8,G.mouse.x+14)), by=Math.min(H-30,Math.max(8,G.mouse.y+16));
+      ctx.fillStyle='rgba(8,14,22,.92)'; ctx.fillRect(bx,by,tw+12,23);
+      ctx.strokeStyle='rgba(100,180,225,.8)'; ctx.lineWidth=1; ctx.strokeRect(bx,by,tw+12,23);
+      ctx.fillStyle='#c9f1ff'; ctx.fillText(label,bx+6,by+5);
+      ctx.restore();
+    }
+  }
 }
 
 // =================== PLACEMENT ===================
@@ -8008,6 +8431,20 @@ function handleCreativeSpawn(type, tx, ty){
     toast('💥 Взрыв нанес урон по площади!'); SND.explosion(); return true;
   }
   if(item==='landMine'){ return tryPlace('landMine',tx,ty); }
+  const playerTargetTypes={targetPlayerGround:{type:'targetDummyGround',air:false},targetPlayerAir:{type:'targetDummyAir',air:true}};
+  if(playerTargetTypes[item]){
+    const opt=playerTargetTypes[item];
+    if(!opt.air && (!terrain[ty]||!terrain[ty][tx]||terrain[ty][tx].t==='water'||terrain[ty][tx].t==='mountain')){toast('Наземную мишень нужно разместить на суше');return false;}
+    const e=new Enemy(wx,wy,opt.type);e.isTestTarget=true;e.testTargetKind='playerWeapons';e.testTargetAir=opt.air;e.flying=opt.air;e.speed=0;e.atk=0;e.range=0;e.hp=5000;e.maxHp=5000;e.attackT=999999;e.target=null;e.combatTarget=null;
+    G.enemies.push(e);toast(opt.air?'Создана летающая мишень для оружия игрока':'Создана наземная мишень для оружия игрока');SND.place();return true;
+  }
+  const goblinTargetTypes={targetGoblinGround:{air:false},targetGoblinAir:{air:true}};
+  if(goblinTargetTypes[item]){
+    const opt=goblinTargetTypes[item];
+    if(!opt.air && (!terrain[ty]||!terrain[ty][tx]||terrain[ty][tx].t==='water'||terrain[ty][tx].t==='mountain')){toast('Наземную мишень нужно разместить на суше');return false;}
+    const u=new Unit(wx,wy,false);u.isTestTarget=true;u.testTargetKind='goblinAttacks';u.testTargetAir=opt.air;u.flying=opt.air;u.speed=0;u.hp=5000;u.maxHp=5000;u.lastDamageT=G.time;u.state='idle';u.manual=true;u.job=null;u.target=null;u.attackTarget=null;
+    G.units.push(u);toast(opt.air?'Создана летающая мишень для проверки гоблинского ПВО':'Создана наземная мишень для проверки атак гоблинов');SND.place();return true;
+  }
   if(ENEMY_TYPES[item]){ const e = new Enemy(wx, wy, item); G.enemies.push(e); toast('Создан: ' + ENEMY_TYPES[item].name); SND.place(); return true; }
   if(SOLDIER_TYPES[item]){ const u=new Unit(wx,wy,false); u.setSoldier(item); G.units.push(u); toast('Создан: '+SOLDIER_TYPES[item].name); SND.place(); return true; }
   if(GOBLIN_BUILDINGS[item]){
@@ -8850,6 +9287,17 @@ function updateInfoUI(){
     html += `<div style="margin-top:6px"><button class="sm" onclick="loadSelectedTransport()">＋ Подобрать рядом</button><button class="sm" onclick="unloadSelectedTransport()">Высадить</button><button class="sm" onclick="setTransportAuto('heli',${tr.autoMode===false?'true':'false'})">${tr.autoMode===false?'▶ Автоперевозка':'⏸ Ручной маршрут'}</button></div>`;
   }
   else if(G.sel instanceof Enemy){ const e = G.sel; html = `<b>👺 ${e.def.name}</b><br>❤ ${Math.round(e.hp)}/${e.maxHp}<br>⚔ ${e.atk} • ${e.range}`; }
+  else if(G.enemyBases.includes(G.sel)){
+    const eb=G.sel;
+    if(eb.kind==='ai'){
+      const owned=goblinBaseBuildings(eb);
+      const combat=G.enemies.filter(e=>e&&e.homeBaseId===eb.id&&!(e.def&&e.def.worker)).length;
+      const workers=G.enemies.filter(e=>e&&e.homeBaseId===eb.id&&e.def&&e.def.worker).length;
+      const econ=eb.econ||{};
+      const goal=eb.aiCurrentGoal&&GOBLIN_BUILDINGS[eb.aiCurrentGoal]?GOBLIN_BUILDINGS[eb.aiCurrentGoal].name:(eb.aiCurrentReason||'Планируется');
+      html=`<b>🧠 Стратегическая база гоблинов</b><br>Стратегия: <b>${GOBLIN_AI_STRATEGY_NAMES[eb.aiStrategy]||'Анализ ситуации'}</b><br>Уровень: ${eb.econ?eb.econ.tier||1:1} · Фаза: ${eb.aiPhase==='establishment'?'Основание':eb.aiPhase==='expansion'?'Расширение':eb.aiPhase==='war'?'Военная':'Развитие'}<br>Зданий: ${owned.length} · Войск: ${combat} · Рабочих: ${workers}<br>Следующая задача: ${goal}<br>❤ ${Math.max(0,Math.round(eb.hp||0))}/${Math.round(eb.maxHp||eb.hp||0)}<div style="font-size:10px;color:#8fa6c0;margin-top:5px">Экономика: дерево ${Math.floor(econ.wood||0)}, камень ${Math.floor(econ.stone||0)}, еда ${Math.floor(econ.food||0)}, железо ${Math.floor(econ.iron||0)}, золото ${Math.floor(econ.gold||0)}</div>`;
+    }else html=`<b>🏰 Вражеская база</b><br>Уровень: ${eb.level||1}<br>❤ ${Math.max(0,Math.round(eb.hp||0))}/${Math.round(eb.maxHp||eb.hp||0)}`;
+  }
   else if(G.sel instanceof Unit){
     const u = G.sel;
     const st = {idle:'свободен',goNode:'идёт к ресурсу',gather:'добывает',goStore:'несёт на склад',goBuilding:'идёт на работу',work:'работает',manualMove:'идёт по приказу',attack:'атакует',goEnemy:'идёт к врагу'}[u.state] || u.state;
@@ -9258,6 +9706,8 @@ function renderSettings(){
     <div class="setting-row"><label>💡 Подсказки</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.hints?'checked':''} onchange="setSetting('hints', this.checked)"><span class="toggle-slider"></span></label></div>
     <div class="setting-row"><label>🖱 Прокрутка камеры у края экрана</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.edgeScroll?'checked':''} onchange="setSetting('edgeScroll', this.checked)"><span class="toggle-slider"></span></label></div>
     <div class="setting-row"><label>📈 FPS</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.fps?'checked':''} onchange="setSetting('fps', this.checked)"><span class="toggle-slider"></span></label></div>
+    <div class="setting-row"><label>🧭 Показывать координаты X/Y</label><label class="toggle-switch"><input type="checkbox" ${SETTINGS.showCoordinates?'checked':''} onchange="setSetting('showCoordinates', this.checked)"><span class="toggle-slider"></span></label></div>
+    <div class="setting-row"><small>При наведении на карту показывает координаты клетки X/Y (отсчёт начинается с 0).</small></div>
     <div class="settings-section">Сеть / мультиплеер</div>
     <div class="setting-row"><label>📡 Ping</label><b id="mp-ping-value" style="font-variant-numeric:tabular-nums;color:#9fc4ee">—</b></div>
     <div class="setting-row"><label>📉 Потери пакетов</label><b id="mp-loss-value" style="font-variant-numeric:tabular-nums;color:#9fc4ee">—</b></div>
@@ -9327,7 +9777,7 @@ function applySettings(){
 }
 const SAVE_KEY = 'citysim_v13_';
 // Keep v13 storage compatibility so existing local saves remain loadable across v44.
-const GAME_VERSION = 'v53-defense-command-panel';
+const GAME_VERSION = 'v55-strategic-goblin-base-ai';
 const SAVE_VERSION = 13; // Intentionally retain v13: this fork adds optional fields and keeps old v13 saves compatible.
 function normalizeSaveDataV13(data){
   if(!data || typeof data!=='object' || Array.isArray(data) || data.version!==SAVE_VERSION) return data;
@@ -9437,11 +9887,11 @@ function buildSaveData(){
     diplomacy: G.diplomacy ? JSON.parse(JSON.stringify(G.diplomacy)) : null,
     buildings: G.buildings.map(b => ({ type: b.type, tx: b.tx, ty: b.ty, platformX:b.px, platformY:b.py, team: b.team || null, targetFilter:TOWER_TARGET_FILTERS[b.targetFilter]?b.targetFilter:(b.def&&b.def.antiAirOnly?'air':'all'), targetPriority:TOWER_TARGET_PRIORITIES[b.targetPriority]?b.targetPriority:'nearest', manualTargetRef:serializeTowerTargetRef(b.manualTarget,b), sourceResource:b.sourceResource||'wood', sourceRate:Number.isFinite(b.sourceRate)?b.sourceRate:5, energySourceOutput:Number.isFinite(b.energySourceOutput)?b.energySourceOutput:5000, missileLaunchVisualT:b.missileLaunchVisualT||0, artilleryTargetX:Number.isFinite(b.artilleryTargetX)?b.artilleryTargetX:null, artilleryTargetY:Number.isFinite(b.artilleryTargetY)?b.artilleryTargetY:null, artillerySalvosRemaining:b.artillerySalvosRemaining||0, artillerySalvoTimer:b.artillerySalvoTimer||0, superweaponPrimed:b.superweaponPrimed!==false, deposit: b.deposit, hp: b.hp, maxHp: b.maxHp, constructionT: b.constructionT || 0, workerIds: b.workers.map(w => w.id), spawnT: b.spawnT || 0, rallyPoint: b.rallyPoint, uraniumRemaining: b.uraniumRemaining, noFuelTimer: b.noFuelTimer, platformDeployed: b.platformDeployed !== false, platformTravel:b.platformTravel||null, superweaponCooldown: b.superweaponCooldown || 0, shieldHp: b.shieldHp, shieldEnabled: b.shieldEnabled !== false, shieldRegenTimer: b.shieldRegenTimer || 0 })),
     goblinBuildings: G.goblinBuildings.map(gb => ({ type: gb.type, tx: gb.tx, ty: gb.ty, hp: gb.hp, maxHp: gb.maxHp, attackT: gb.attackT, spawnT: gb.spawnT, ownerBaseId: gb.ownerBaseId })),
-    units: G.units.map(u => ({ id: u.id, x: u.x, y: u.y, team:u.team||null, robot: u.robot, drone: u.drone, state: u.state, soldierType: u.soldierType, hp: u.hp, isRepairDrone: u.isRepairDrone, lastDamageT: u.lastDamageT, cloth: u.cloth, skin: u.skin, width: u.width, manual: u.manual, combatMode: u.combatMode, guardPos: u.guardPos, airState: u.airState, airAmmo: u.airAmmo, airMaxAmmo: u.airMaxAmmo, airReloadT: u.airReloadT, airOrbitAngle: u.airOrbitAngle, airHomeX: u.airHomeX, airHomeY: u.airHomeY, jobTx: u.job ? u.job.tx : -1, jobTy: u.job ? u.job.ty : -1, barracksTx: u.barracks ? u.barracks.tx : -1, barracksTy: u.barracks ? u.barracks.ty : -1, carry: u.carry, carryAmt: u.carryAmt, timer: u.timer, idleT: u.idleT, targetTx: u.target ? u.target.tx : -1, targetTy: u.target ? u.target.ty : -1, inBoatIdx: u.inBoat ? G.boats.indexOf(u.inBoat) : -1, inHeliIdx: u.inHeli ? G.helis.indexOf(u.inHeli) : -1, hubIdx: u.hub ? G.buildings.indexOf(u.hub) : -1, mvx: u.mvx, mvy: u.mvy, waypoints: u.waypoints || [] })),
+    units: G.units.map(u => ({ id: u.id, x: u.x, y: u.y, team:u.team||null, robot: u.robot, drone: u.drone, state: u.state, soldierType: u.soldierType, hp: u.hp, maxHp:u.maxHp, isTestTarget:!!u.isTestTarget, testTargetKind:u.testTargetKind||null, testTargetAir:!!u.testTargetAir, flying:!!u.flying, isRepairDrone: u.isRepairDrone, lastDamageT: u.lastDamageT, cloth: u.cloth, skin: u.skin, width: u.width, manual: u.manual, combatMode: u.combatMode, guardPos: u.guardPos, airState: u.airState, airAmmo: u.airAmmo, airMaxAmmo: u.airMaxAmmo, airReloadT: u.airReloadT, airOrbitAngle: u.airOrbitAngle, airHomeX: u.airHomeX, airHomeY: u.airHomeY, jobTx: u.job ? u.job.tx : -1, jobTy: u.job ? u.job.ty : -1, barracksTx: u.barracks ? u.barracks.tx : -1, barracksTy: u.barracks ? u.barracks.ty : -1, carry: u.carry, carryAmt: u.carryAmt, timer: u.timer, idleT: u.idleT, targetTx: u.target ? u.target.tx : -1, targetTy: u.target ? u.target.ty : -1, inBoatIdx: u.inBoat ? G.boats.indexOf(u.inBoat) : -1, inHeliIdx: u.inHeli ? G.helis.indexOf(u.inHeli) : -1, hubIdx: u.hub ? G.buildings.indexOf(u.hub) : -1, mvx: u.mvx, mvy: u.mvy, waypoints: u.waypoints || [] })),
     boats: G.boats.map(bo => ({ x: bo.x, y: bo.y, team:bo.team||null, state: bo.state, target: bo.target, autoMode: bo.autoMode !== false, hp: bo.hp, passengerIds: bo.passengers.map(p => p.id) })),
     helis: G.helis.map(h => ({ x: h.x, y: h.y, team:h.team||null, state: h.state, target: h.target, autoMode: h.autoMode !== false, hp: h.hp, passengerIds: h.passengers.map(p => p.id) })),
-    enemies: G.enemies.map(e => ({ x: e.x, y: e.y, type: e.type, hp: e.hp, maxHp: e.maxHp, atk: e.atk, homeBaseId:e.homeBaseId, workerState:e.workerState, workerRole:e.workerRole, workerTimer:e.workerTimer })),
-    enemyBases: G.enemyBases.map(eb => ({ x: eb.x, y: eb.y, tx: eb.tx, ty: eb.ty, hp: eb.hp, maxHp: eb.maxHp, spawnRate: eb.spawnRate, baseSpawnRate: eb.baseSpawnRate, spawnT: eb.spawnT, maxEnemies: eb.maxEnemies, buildTimer: eb.buildTimer, waveTimer: eb.waveTimer, level: eb.level, kind: eb.kind, id: eb.id, evoT: eb.evoT, evolutionPeriod: eb.evolutionPeriod, workerSpawnT:eb.workerSpawnT, econ: eb.econ ? {...eb.econ} : null })),
+    enemies: G.enemies.map(e => ({ x: e.x, y: e.y, type: e.type, hp: e.hp, maxHp: e.maxHp, atk: e.atk, isTestTarget:!!e.isTestTarget, testTargetKind:e.testTargetKind||null, testTargetAir:!!e.testTargetAir, flying:!!e.flying, speed:e.speed, range:e.range, homeBaseId:e.homeBaseId, aiAttackStyle:e.aiAttackStyle||null, aiSquadId:e.aiSquadId||null, aiSquadRole:e.aiSquadRole||null, aiFocusTargetKey:e.aiFocusTargetKey||null, workerState:e.workerState, workerRole:e.workerRole, workerTimer:e.workerTimer })),
+    enemyBases: G.enemyBases.map(eb => ({ x: eb.x, y: eb.y, tx: eb.tx, ty: eb.ty, hp: eb.hp, maxHp: eb.maxHp, spawnRate: eb.spawnRate, baseSpawnRate: eb.baseSpawnRate, spawnT: eb.spawnT, maxEnemies: eb.maxEnemies, buildTimer: eb.buildTimer, waveTimer: eb.waveTimer, level: eb.level, kind: eb.kind, id: eb.id, evoT: eb.evoT, evolutionPeriod: eb.evolutionPeriod, workerSpawnT:eb.workerSpawnT, econ: eb.econ ? {...eb.econ} : null, aiStrategy:eb.aiStrategy||null, aiStrategyThinkT:eb.aiStrategyThinkT||0, aiStrategyChangedAt:eb.aiStrategyChangedAt||0, aiStrategyLogAt:eb.aiStrategyLogAt||0, aiFocusTargetKey:eb.aiFocusTargetKey||null, aiCurrentGoal:eb.aiCurrentGoal||null, aiCurrentReason:eb.aiCurrentReason||null, aiPhase:eb.aiPhase||null, aiRepairT:eb.aiRepairT||0, aiLastDamagedAt:Number.isFinite(eb.aiLastDamagedAt)?eb.aiLastDamagedAt:null, aiThreatX:eb.aiThreatX, aiThreatY:eb.aiThreatY, aiSquadSerial:eb.aiSquadSerial||0, aiLastBuildType:eb.aiLastBuildType||null, aiLastBuildAt:eb.aiLastBuildAt||0 })),
     cam: {x: cam.x, y: cam.y, zoom: cam.zoom},
     savedAt: Date.now()
   };
@@ -9506,7 +9956,9 @@ function applySaveData(data){
       if(ud.drone){ u.drone = true; u.speed = 110; }
       if(ud.isRepairDrone){ u.isRepairDrone = true; u.drone = true; u.speed = 90; }
       if(ud.soldierType){ u.setSoldier(ud.soldierType); }
+      if(Number.isFinite(ud.maxHp)) u.maxHp = Math.max(1,ud.maxHp);
       if(ud.hp !== undefined) u.hp = ud.hp;
+      if(ud.isTestTarget){u.isTestTarget=true;u.testTargetKind=ud.testTargetKind||'goblinAttacks';u.testTargetAir=!!ud.testTargetAir;u.flying=!!ud.flying;u.speed=0;u.manual=true;u.job=null;u.target=null;u.attackTarget=null;u.state='idle';}
       if(ud.airState)u.airState=ud.airState;if(Number.isFinite(ud.airAmmo))u.airAmmo=ud.airAmmo;if(Number.isFinite(ud.airMaxAmmo))u.airMaxAmmo=ud.airMaxAmmo;if(Number.isFinite(ud.airReloadT))u.airReloadT=ud.airReloadT;if(Number.isFinite(ud.airOrbitAngle))u.airOrbitAngle=ud.airOrbitAngle;if(Number.isFinite(ud.airHomeX))u.airHomeX=ud.airHomeX;if(Number.isFinite(ud.airHomeY))u.airHomeY=ud.airHomeY;
       if(ud.cloth) u.cloth = ud.cloth; if(ud.skin) u.skin = ud.skin; if(ud.width) u.width = ud.width;
       u.manual = !!ud.manual; u.state = ud.state;
@@ -9534,13 +9986,23 @@ function applySaveData(data){
       if(ed.hp !== undefined) e.hp = ed.hp;
       if(ed.maxHp !== undefined) e.maxHp = ed.maxHp;
       if(ed.atk !== undefined) e.atk = ed.atk;
+      if(ed.isTestTarget !== undefined) e.isTestTarget = !!ed.isTestTarget;
+      if(ed.testTargetKind) e.testTargetKind = ed.testTargetKind;
+      if(ed.testTargetAir !== undefined) e.testTargetAir = !!ed.testTargetAir;
+      if(ed.flying !== undefined) e.flying = !!ed.flying;
+      if(Number.isFinite(ed.speed) && e.isTestTarget) e.speed = 0;
+      if(e.isTestTarget){e.atk=0;e.range=0;e.target=null;e.combatTarget=null;}
       if(ed.homeBaseId !== undefined) e.homeBaseId = ed.homeBaseId;
+      if(ed.aiAttackStyle) e.aiAttackStyle=ed.aiAttackStyle;
+      if(ed.aiSquadId) e.aiSquadId=ed.aiSquadId;
+      if(ed.aiSquadRole) e.aiSquadRole=ed.aiSquadRole;
+      if(ed.aiFocusTargetKey) e.aiFocusTargetKey=ed.aiFocusTargetKey;
       if(ed.workerState !== undefined) e.workerState = ed.workerState;
       if(ed.workerRole !== undefined) e.workerRole = ed.workerRole;
       if(Number.isFinite(ed.workerTimer)) e.workerTimer = ed.workerTimer;
       return e;
     });
-    G.enemyBases = (data.enemyBases || []).map(eb => ({...eb, kind:eb.kind || (G.mode==='experimental'?'ai':'spawner'), baseSpawnRate:eb.baseSpawnRate || eb.spawnRate || 20, econ:eb.econ ? {...eb.econ} : null}));
+    G.enemyBases = (data.enemyBases || []).map(eb => ({...eb, kind:eb.kind || (G.mode==='experimental'?'ai':'spawner'), baseSpawnRate:eb.baseSpawnRate || eb.spawnRate || 20, econ:eb.econ ? {...eb.econ} : null, aiStrategyThinkT:Number.isFinite(eb.aiStrategyThinkT)?eb.aiStrategyThinkT:99, aiFocusTarget:null}));
     data.buildings.forEach((bd,i)=>{const b=G.buildings[i];if(!b)return;b.manualTarget=resolveTowerTargetRef(bd.manualTargetRef);b._cachedTowerTarget=null;b._targetSearchT=0;});
     G.projectiles = []; G.effects = []; G.damageNumbers = [];
     G.regrow = []; G.particles = []; G.unitGroups = {}; G.build = null; G.markerMode = false; G.fogUpdateT = 0;
@@ -9869,7 +10331,7 @@ function checkPvpVictory(){
 }
 
 
-const MULTIPLAYER_SERVER_SOURCE = "/*\n * Поселение v49 — сервер экспериментального мультиплеера (протокол v4).\n * BUILD: v49-FIXME-audit (protocol v4).\n * Совместимость: Node.js 10+ (для старых систем не используется префикс node:).\n * Запуск: node server.js\n * Положите этот файл рядом с HTML-файлом игры, например «Поселение v48 — стабилизация.html».\n */\n'use strict';\n\nconst http = require('http');\nconst fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\nconst os = require('os');\nconst URL = require('url').URL;\n\nconst requestedPort = Number(process.env.PORT || 3000);\nconst PORT = Number.isInteger(requestedPort) && requestedPort >= 1 && requestedPort <= 65535 ? requestedPort : 3000;\nconst HOST = process.env.HOST || '0.0.0.0';\nconst MAX_BODY_BYTES = 32 * 1024 * 1024;\nconst MAX_PLAYERS = 8;\nconst HOST_TIMEOUT_MS = 45000;\nconst GUEST_TIMEOUT_MS = 30000;\nconst MAX_REQUESTS_PER_MINUTE = 900;\nconst PROTOCOL_VERSION = 4;\n\nconst VALID_TEAMS = ['green','blue','yellow','pink'];\nconst players = new Map();\nconst proposals = new Map();\nconst rateWindows = new Map();\nlet hostId = null;\nlet roomCode = null;\nlet hostLastSeen = 0;\nlet sharedState = null;\nlet revision = 0;\nlet proposalSequence = 0;\nlet started = false;\nlet roomSettings = defaultRoomSettings();\nlet shuttingDown = false;\n\nfunction makeId() {\n  // crypto.randomUUID() появился значительно позже старых Node.js из дистрибутивов Linux.\n  return crypto.randomBytes(16).toString('hex');\n}\n\nfunction makeRoomCode() {\n  return crypto.randomBytes(3).toString('hex').toUpperCase();\n}\n\nfunction cleanName(value) {\n  return String(value || 'Игрок')\n    .replace(/[<>\\u0000-\\u001f\\u007f]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 24) || 'Игрок';\n}\n\nfunction json(res, status, payload, extraHeaders) {\n  if (res.finished || res.destroyed) return;\n  const body = JSON.stringify(payload);\n  res.writeHead(status, Object.assign({\n    'Content-Type': 'application/json; charset=utf-8',\n    'Content-Length': Buffer.byteLength(body),\n    'Cache-Control': 'no-store',\n    'X-Content-Type-Options': 'nosniff',\n    'Referrer-Policy': 'no-referrer'\n  }, extraHeaders || {}));\n  res.end(body);\n}\n\nfunction plain(res, status, message) {\n  if (res.finished || res.destroyed) return;\n  res.writeHead(status, {\n    'Content-Type': 'text/plain; charset=utf-8',\n    'Content-Length': Buffer.byteLength(message),\n    'Cache-Control': 'no-store',\n    'X-Content-Type-Options': 'nosniff'\n  });\n  res.end(message);\n}\n\nfunction applyCors(req, res) {\n  const origin = req.headers.origin;\n  // The game is intended for a private LAN. File:// clients send Origin: null.\n  // CORS is only necessary for these direct-file/alternate-origin setups.\n  if (!origin || origin === 'null' || /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/i.test(origin) || origin === 'http://' + (req.headers.host || '')) {\n    res.setHeader('Access-Control-Allow-Origin', origin || '*');\n  } else {\n    // The host page is normally served from this same server; LAN users should open\n    // the printed host URL, not a separate copy of the HTML file.\n    res.setHeader('Access-Control-Allow-Origin', origin);\n  }\n  res.setHeader('Vary', 'Origin');\n  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');\n  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Room-Code');\n  res.setHeader('Access-Control-Max-Age', '600');\n}\n\nfunction readJsonBody(req) {\n  return new Promise(function (resolve, reject) {\n    const chunks = [];\n    let size = 0;\n    let tooLarge = false;\n    req.on('data', function (chunk) {\n      size += chunk.length;\n      if (size > MAX_BODY_BYTES) {\n        tooLarge = true;\n        chunks.length = 0;\n        return;\n      }\n      if (!tooLarge) chunks.push(chunk);\n    });\n    req.on('end', function () {\n      if (tooLarge) return reject(Object.assign(new Error('Тело запроса превышает 32 МБ'), { statusCode: 413 }));\n      if (!chunks.length) return resolve({});\n      let parsed;\n      try { parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')); }\n      catch (_) { return reject(Object.assign(new Error('Некорректный JSON'), { statusCode: 400 })); }\n      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {\n        return reject(Object.assign(new Error('Ожидался JSON-объект'), { statusCode: 400 }));\n      }\n      resolve(parsed);\n    });\n    req.on('error', reject);\n  });\n}\n\nfunction defaultRoomSettings() {\n  return {\n    mode: 'shared', mapSize: 'medium', terrain: 'normal', difficulty: 'normal',\n    fog: true, dayNight: true, resourceDensity: 2, goblinSpawnLevel: 1,\n    researchSpeedLevel: 1, constructionSpeedLevel: 1, seed: null, creative: false\n  };\n}\n\nfunction cleanRoomSettings(value) {\n  value = value && typeof value === 'object' ? value : {};\n  var sizes = ['superTiny','tiny','small','medium','large','huge','superHuge','elongated'];\n  var terrains = ['normal','mountain','island','flat'];\n  var difficulties = ['easy','normal','hard'];\n  var modes = ['shared','separate','pvp','goblinBases'];\n  var seed = value.seed;\n  if (seed === '' || seed === undefined || seed === null || !Number.isSafeInteger(Number(seed))) seed = null;\n  else seed = Number(seed);\n  function intIn(v, min, max, fallback) {\n    v = Number(v);\n    return Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : fallback;\n  }\n  return {\n    mode: modes.indexOf(value.mode) >= 0 ? value.mode : 'shared',\n    mapSize: sizes.indexOf(value.mapSize) >= 0 ? value.mapSize : 'medium',\n    terrain: terrains.indexOf(value.terrain) >= 0 ? value.terrain : 'normal',\n    difficulty: difficulties.indexOf(value.difficulty) >= 0 ? value.difficulty : 'normal',\n    fog: value.fog !== false,\n    dayNight: value.dayNight !== false,\n    resourceDensity: intIn(value.resourceDensity, 0, 3, 2),\n    goblinSpawnLevel: intIn(value.goblinSpawnLevel, 0, 3, 1),\n    researchSpeedLevel: intIn(value.researchSpeedLevel, 0, 2, 1),\n    constructionSpeedLevel: intIn(value.constructionSpeedLevel, 0, 2, 1),\n    seed: seed, creative: value.creative === true\n  };\n}\n\nfunction clearRoom() {\n\n  players.clear();\n  proposals.clear();\n  hostId = null;\n  roomCode = null;\n  hostLastSeen = 0;\n  sharedState = null;\n  revision = 0;\n  started = false;\n  roomSettings = defaultRoomSettings();\n}\n\nfunction prunePlayers() {\n  const now = Date.now();\n  if (hostId && now - hostLastSeen > HOST_TIMEOUT_MS) {\n    console.log('Хост не отвечает — комната закрыта.');\n    clearRoom();\n    return;\n  }\n  players.forEach(function (player, id) {\n    if (id !== hostId && now - player.lastSeen > GUEST_TIMEOUT_MS) {\n      players.delete(id);\n      proposals.delete(id);\n    }\n  });\n}\n\nfunction listPlayers() {\n  prunePlayers();\n  const out = [];\n  players.forEach(function (p) { out.push({ id: p.id, name: p.name, role: p.role, team: p.team || 'green' }); });\n  return out;\n}\n\nfunction createPlayer(name, role) {\n  const counts = {green:0,blue:0,yellow:0,pink:0};\n  players.forEach(function (p) { if (counts[p.team] !== undefined) counts[p.team]++; });\n  const team = VALID_TEAMS.slice().sort(function(a,b){return counts[a]-counts[b];})[0] || 'green';\n  const player = { id: makeId(), name: cleanName(name), role: role, team: team, lastSeen: Date.now() };\n  players.set(player.id, player);\n  return player;\n}\n\nfunction heartbeat(id) {\n  const player = players.get(String(id || ''));\n  if (!player) return false;\n  player.lastSeen = Date.now();\n  if (player.id === hostId) hostLastSeen = player.lastSeen;\n  return true;\n}\n\nfunction suppliedRoomCode(req, body, url) {\n  const headerCode = req.headers['x-room-code'];\n  return String(headerCode || (body && body.roomCode) || (url && url.searchParams.get('roomCode')) || '')\n    .replace(/[^a-f0-9]/gi, '').toUpperCase().slice(0, 6);\n}\n\nfunction roomAuthorized(req, body, url) {\n  const supplied = suppliedRoomCode(req, body, url);\n  return !!roomCode && supplied === roomCode;\n}\n\nfunction isValidSnapshot(save) {\n  if (!save || typeof save !== 'object' || Array.isArray(save)) return false;\n  if (save.version !== 13 || !Array.isArray(save.terrain) || !save.terrain.length || save.terrain.length > 2000) return false;\n  const rowLength = Array.isArray(save.terrain[0]) ? save.terrain[0].length : 0;\n  if (!rowLength || rowLength > 2000) return false;\n  if (!save.terrain.every(function (row) { return Array.isArray(row) && row.length === rowLength; })) return false;\n  if (!save.res || typeof save.res !== 'object' || !Array.isArray(save.buildings) || !Array.isArray(save.units)) return false;\n  if (save.buildings.length > 50000 || save.units.length > 50000) return false;\n  return true;\n}\n\nfunction allowRate(req) {\n  const ip = (req.socket && req.socket.remoteAddress) || 'unknown';\n  const now = Date.now();\n  let record = rateWindows.get(ip);\n  if (!record || now - record.start > 60000) record = { start: now, count: 0 };\n  record.count += 1;\n  rateWindows.set(ip, record);\n  if (rateWindows.size > 500) {\n    rateWindows.forEach(function (entry, key) { if (now - entry.start > 120000) rateWindows.delete(key); });\n  }\n  return record.count <= MAX_REQUESTS_PER_MINUTE;\n}\n\nfunction findGameFile() {\n  var names;\n  try { names = fs.readdirSync(__dirname); } catch (_) { return null; }\n  var files = names.filter(function (name) {\n    if (!/\\.html?$/i.test(name) || name.charAt(0) === '.') return false;\n    try { return fs.statSync(path.join(__dirname, name)).isFile(); }\n    catch (_) { return false; }\n  });\n  if (!files.length) return null;\n\n  function rank(name) {\n    // Prefer the newer stabilization build if v47 is still present in the folder.\n    if (/^поселение.*v?49.*\\.html?$/i.test(name)) return 230;\n    if (/^settlement[ _-]*v?49.*\\.html?$/i.test(name)) return 230;\n    if (/v[ _-]*49/i.test(name) || /поселение.*49/i.test(name)) return 220;\n    if (/^поселение.*v?48.*\\.html?$/i.test(name)) return 190;\n    if (/^settlement[ _-]*v?48.*\\.html?$/i.test(name)) return 190;\n    if (/v[ _-]*48/i.test(name) || /поселение.*48/i.test(name)) return 175;\n    if (/^Settlement_v47(?:_STABLE)?(?:_20261115)?\\.html?$/i.test(name)) return 180;\n    if (/^Settlement_v46_JOINFIX(?:_20261115)?\\.html?$/i.test(name)) return 160;\n    if (/^поселение\\s*v?47(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 170;\n    if (/^поселение\\s*v?46(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 140;\n    if (/^поселение.*v?47.*\\.html?$/i.test(name)) return 165;\n    if (/^поселение.*v?46.*\\.html?$/i.test(name)) return 135;\n    if (/^settlement[ _-]*v?47.*\\.html?$/i.test(name)) return 160;\n    if (/^settlement[ _-]*v?46.*\\.html?$/i.test(name)) return 130;\n    if (/v[ _-]*47/i.test(name) || /поселение.*47/i.test(name)) return 150;\n    if (/v[ _-]*46/i.test(name) || /поселение.*46/i.test(name)) return 120;\n    if (/^поселение\\s*v?45(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 110;\n    if (/^поселение.*v?45.*\\.html?$/i.test(name)) return 105;\n    if (/^settlement[ _-]*v?45.*\\.html?$/i.test(name)) return 100;\n    if (/v[ _-]*45/i.test(name) || /поселение.*45/i.test(name)) return 90;\n    if (/^поселение/i.test(name)) return 70;\n    if (/^settlement/i.test(name)) return 60;\n    return 10;\n  }\n\n  files.sort(function (a, b) {\n    var diff = rank(b) - rank(a);\n    if (diff) return diff;\n    // If there are several unrelated HTML files, use the most recently updated one.\n    var at = 0, bt = 0;\n    try { at = fs.statSync(path.join(__dirname, a)).mtime.getTime(); } catch (_) {}\n    try { bt = fs.statSync(path.join(__dirname, b)).mtime.getTime(); } catch (_) {}\n    return bt - at || a.localeCompare(b);\n  });\n  return path.join(__dirname, files[0]);\n}\n\nfunction serveGame(req, res) {\n  var gameFile = findGameFile();\n  if (!gameFile) {\n    return plain(res, 404, 'В папке с server.js не найден HTML-файл игры. Скачайте «Поселение v48 — стабилизация.html» и положите его в эту же папку. Имя файла может отличаться — важно, чтобы рядом с server.js был HTML игры.');\n  }\n  var stream = fs.createReadStream(gameFile);\n  res.writeHead(200, {\n    'Content-Type': 'text/html; charset=utf-8',\n    'Cache-Control': 'no-cache',\n    'X-Content-Type-Options': 'nosniff'\n  });\n  if (req.method === 'HEAD') return res.end();\n  stream.on('error', function () {\n    if (!res.headersSent) plain(res, 500, 'Не удалось прочитать HTML игры. Проверьте права доступа к файлу.');\n    else if (!res.finished) res.destroy();\n  });\n  stream.pipe(res);\n}\n\nasync function handleRequest(req, res) {\n  applyCors(req, res);\n  if (req.method === 'OPTIONS') {\n    res.writeHead(204, { 'Content-Length': '0' });\n    return res.end();\n  }\n  if (!allowRate(req)) return json(res, 429, { ok: false, error: 'Слишком много запросов. Подождите минуту.' });\n\n  let url;\n  try { url = new URL(req.url, 'http://' + (req.headers.host || 'localhost')); }\n  catch (_) { return json(res, 400, { ok: false, error: 'Некорректный URL' }); }\n  let pathname = url.pathname;\n  try { pathname = decodeURIComponent(pathname); }\n  catch (_) { return json(res, 400, { ok: false, error: 'Некорректный путь' }); }\n\n  if ((req.method === 'GET' || req.method === 'HEAD') && (pathname === '/' || pathname === '/index.html' || /\\.html?$/i.test(pathname))) {\n    return serveGame(req, res);\n  }\n\n  if (req.method === 'GET' && pathname === '/api/status') {\n    return json(res, 200, {\n      ok: true, protocol: PROTOCOL_VERSION, hostOnline: !!hostId, started: started,\n      revision: revision, maxPlayers: MAX_PLAYERS, players: listPlayers(), settings: roomSettings\n    });\n  }\n\n  if (req.method === 'GET' && pathname === '/api/state') {\n    prunePlayers();\n    const id = String(url.searchParams.get('id') || '');\n    if (!roomAuthorized(req, null, url)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!heartbeat(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена. Подключитесь к комнате заново.' });\n    const since = Math.max(0, Number(url.searchParams.get('since') || 0));\n    return json(res, 200, {\n      ok: true, hostOnline: !!hostId, started: started, revision: revision,\n      state: sharedState && revision > since ? sharedState : null,\n      players: listPlayers(), hostId: hostId, settings: roomSettings\n    });\n  }\n\n  if (req.method === 'GET' && pathname === '/api/pending') {\n    prunePlayers();\n    const id = String(url.searchParams.get('id') || '');\n    if (!roomAuthorized(req, null, url)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может получать действия' });\n    heartbeat(id);\n    const pending = [];\n    proposals.forEach(function (p) { pending.push(p); });\n    pending.sort(function (a, b) { return a.sentAt - b.sentAt; });\n    return json(res, 200, { ok: true, proposals: pending, players: listPlayers() });\n  }\n\n  if (req.method !== 'POST') return json(res, 404, { ok: false, error: 'Маршрут не найден' });\n\n  let body;\n  try { body = await readJsonBody(req); }\n  catch (err) { return json(res, err.statusCode || 400, { ok: false, error: err.message || 'Ошибка чтения запроса' }); }\n\n  if (pathname === '/api/host') {\n    prunePlayers();\n    if (hostId) return json(res, 409, { ok: false, error: 'Комната уже имеет активного хоста. Подключитесь к нему или дождитесь завершения сессии.' });\n    clearRoom();\n    roomCode = makeRoomCode();\n    roomSettings = cleanRoomSettings(body.settings);\n    const p = createPlayer(body.name, 'host');\n    hostId = p.id;\n    hostLastSeen = Date.now();\n    console.log('Создана комната ' + roomCode + ' (хост: ' + p.name + ')');\n    return json(res, 200, { ok: true, id: p.id, role: 'host', roomCode: roomCode, revision: revision, players: listPlayers(), settings: roomSettings, started: started });\n  }\n\n  if (pathname === '/api/join') {\n    prunePlayers();\n    if (!hostId) return json(res, 409, { ok: false, error: 'Хост ещё не создал комнату. Попросите хоста нажать «Хостить».' });\n    if (!roomAuthorized(req, body, url)) return json(res, 403, { ok: false, error: 'Код комнаты неверный. Попросите у хоста актуальный код.' });\n    if (players.size >= MAX_PLAYERS) return json(res, 409, { ok: false, error: 'Комната заполнена (максимум ' + MAX_PLAYERS + ' игроков).' });\n    const p = createPlayer(body.name, 'guest');\n    console.log(p.name + ' подключился к комнате ' + roomCode);\n    return json(res, 200, { ok: true, id: p.id, role: 'guest', revision: revision, state: sharedState, started: started, settings: roomSettings, players: listPlayers() });\n  }\n\n  if (pathname === '/api/heartbeat' || pathname === '/api/leave') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена' });\n    if (pathname === '/api/leave') {\n      const name = players.get(id).name;\n      if (id === hostId) {\n        console.log('Хост завершил комнату ' + roomCode);\n        clearRoom();\n      } else {\n        players.delete(id);\n        proposals.delete(id);\n        console.log(name + ' отключился');\n      }\n      return json(res, 200, { ok: true });\n    }\n    heartbeat(id);\n    return json(res, 200, { ok: true, players: listPlayers() });\n  }\n\n  if (pathname === '/api/team') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена' });\n    if (started) return json(res, 409, { ok: false, error: 'Команда фиксируется до запуска мира' });\n    const team = String(body.team || '');\n    if (VALID_TEAMS.indexOf(team) < 0) return json(res, 400, { ok: false, error: 'Неизвестная команда' });\n    players.get(id).team = team;\n    heartbeat(id);\n    return json(res, 200, { ok: true, team: team, players: listPlayers() });\n  }\n\n  if (pathname === '/api/config') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Настройки лобби может менять только хост' });\n    if (started) return json(res, 409, { ok: false, error: 'Мир уже запущен. Создайте новую комнату, чтобы изменить настройки.' });\n    roomSettings = cleanRoomSettings(body.settings);\n    heartbeat(id);\n    console.log('Обновлены настройки лобби: режим ' + roomSettings.mode + ', карта ' + roomSettings.mapSize);\n    return json(res, 200, { ok: true, settings: roomSettings, players: listPlayers() });\n  }\n\n  if (pathname === '/api/state') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может публиковать состояние' });\n    if (!isValidSnapshot(body.save)) return json(res, 400, { ok: false, error: 'Снимок мира неполный или имеет несовместимую версию. Убедитесь, что у всех участников совместимые версии HTML.' });\n    heartbeat(id);\n    sharedState = body.save;\n    started = true;\n    revision += 1;\n    return json(res, 200, { ok: true, revision: revision });\n  }\n\n  if (pathname === '/api/propose') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id) || id === hostId) return json(res, 403, { ok: false, error: 'Игрок не подключён или пытается действовать как хост' });\n    if (!isValidSnapshot(body.save)) return json(res, 400, { ok: false, error: 'Снимок действия неполный или несовместим с текущей версией HTML' });\n    const player = players.get(id);\n    const now = Date.now();\n    if (player.lastProposalAt && now - player.lastProposalAt < 500) return json(res, 429, { ok: false, error: 'Слишком быстро. Подождите немного и повторите действие.' });\n    heartbeat(id);\n    player.lastProposalAt = now;\n    proposalSequence += 1;\n    proposals.set(id, {\n      id: id, name: player.name, seq: proposalSequence,\n      baseRevision: Math.max(0, Number(body.baseRevision || 0)),\n      save: body.save, sentAt: now\n    });\n    return json(res, 200, { ok: true, seq: proposalSequence });\n  }\n\n  if (pathname === '/api/ack') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может подтверждать действия' });\n    const list = Array.isArray(body.proposals) ? body.proposals.slice(0, MAX_PLAYERS) : [];\n    list.forEach(function (item) {\n      if (!item) return;\n      const existing = proposals.get(String(item.id || ''));\n      if (existing && Number(existing.seq) === Number(item.seq)) proposals.delete(existing.id);\n    });\n    heartbeat(id);\n    return json(res, 200, { ok: true });\n  }\n\n  return json(res, 404, { ok: false, error: 'Маршрут не найден' });\n}\n\nconst server = http.createServer(function (req, res) {\n  handleRequest(req, res).catch(function (err) {\n    console.error('Ошибка обработки запроса:', err && err.stack ? err.stack : err);\n    if (!res.headersSent) json(res, 500, { ok: false, error: 'Внутренняя ошибка сервера' });\n    else if (!res.finished) res.end();\n  });\n});\n\nserver.requestTimeout = 120000;\nserver.headersTimeout = 15000;\nserver.keepAliveTimeout = 5000;\n\nserver.on('clientError', function (err, socket) {\n  if (socket && socket.writable) socket.end('HTTP/1.1 400 Bad Request\\r\\nConnection: close\\r\\n\\r\\n');\n});\n\nserver.on('error', function (err) {\n  console.error('Не удалось запустить сервер:', err.message);\n  if (err.code === 'EADDRINUSE') console.error('Порт ' + PORT + ' уже занят. Для другого порта выполните: PORT=3001 node server.js');\n  if (err.code === 'EACCES') console.error('Нет доступа к порту ' + PORT + '. Используйте порт выше 1024.');\n  process.exitCode = 1;\n});\n\nserver.listen(PORT, HOST, function () {\n  console.log('');\n  console.log('Поселение v49 — аудит FIXME и команды');\n  console.log('Сборка: v49-FIXME-audit (сетевой протокол v4)');\n  console.log('Node.js: ' + process.version);\n  var nodeMajor = Number(String(process.versions.node || '0').split('.')[0]);\n  if (nodeMajor && nodeMajor < 8) console.log('ВНИМАНИЕ: эта версия сервера требует Node.js 8 или новее. Установите Node.js LTS.');\n  console.log('Рекомендация: используйте поддерживаемую LTS-версию Node.js для исправлений безопасности.');\n  console.log('Локально: http://localhost:' + PORT);\n  const interfaces = os.networkInterfaces();\n  const addresses = [];\n  Object.keys(interfaces).forEach(function (name) {\n    (interfaces[name] || []).forEach(function (item) {\n      if (item && (item.family === 'IPv4' || item.family === 4) && !item.internal) addresses.push(item.address);\n    });\n  });\n  Array.from(new Set(addresses)).forEach(function (address) { console.log('В локальной сети: http://' + address + ':' + PORT); });\n  console.log('Чтобы остановить сервер, нажмите Ctrl+C.');\n  console.log('Используйте только в доверенной сети: трафик не зашифрован.');\n  var detectedGameFile = findGameFile();\n  if (detectedGameFile) console.log('HTML игры: ' + path.basename(detectedGameFile));\n  else console.log('ВНИМАНИЕ: рядом с server.js не найден HTML-файл игры. Положите сюда HTML-файл игры или другой HTML-файл игры.');\n  console.log('');\n});\n\nfunction shutdown() {\n  if (shuttingDown) return;\n  shuttingDown = true;\n  console.log('\\nОстанавливаю сервер…');\n  clearRoom();\n  server.close(function () { process.exit(0); });\n  setTimeout(function () { process.exit(0); }, 3000).unref();\n}\nprocess.on('SIGINT', shutdown);\nprocess.on('SIGTERM', shutdown);\n";
+const MULTIPLAYER_SERVER_SOURCE = "/*\n * Поселение v49 — сервер экспериментального мультиплеера (протокол v4).\n * BUILD: v49-FIXME-audit (protocol v4).\n * Совместимость: Node.js 10+ (для старых систем не используется префикс node:).\n * Запуск: node server.js\n * Положите этот файл рядом с HTML-файлом игры, например «Поселение v48 — стабилизация.html».\n */\n'use strict';\n\nconst http = require('http');\nconst fs = require('fs');\nconst path = require('path');\nconst crypto = require('crypto');\nconst os = require('os');\nconst URL = require('url').URL;\n\nconst requestedPort = Number(process.env.PORT || 3000);\nconst PORT = Number.isInteger(requestedPort) && requestedPort >= 1 && requestedPort <= 65535 ? requestedPort : 3000;\nconst HOST = process.env.HOST || '0.0.0.0';\nconst MAX_BODY_BYTES = 32 * 1024 * 1024;\nconst MAX_PLAYERS = 8;\nconst HOST_TIMEOUT_MS = 45000;\nconst GUEST_TIMEOUT_MS = 30000;\nconst MAX_REQUESTS_PER_MINUTE = 900;\nconst PROTOCOL_VERSION = 4;\n\nconst VALID_TEAMS = ['green','blue','yellow','pink'];\nconst players = new Map();\nconst proposals = new Map();\nconst rateWindows = new Map();\nlet hostId = null;\nlet roomCode = null;\nlet hostLastSeen = 0;\nlet sharedState = null;\nlet revision = 0;\nlet proposalSequence = 0;\nlet started = false;\nlet roomSettings = defaultRoomSettings();\nlet shuttingDown = false;\n\nfunction makeId() {\n  // crypto.randomUUID() появился значительно позже старых Node.js из дистрибутивов Linux.\n  return crypto.randomBytes(16).toString('hex');\n}\n\nfunction makeRoomCode() {\n  return crypto.randomBytes(3).toString('hex').toUpperCase();\n}\n\nfunction cleanName(value) {\n  return String(value || 'Игрок')\n    .replace(/[<>\\u0000-\\u001f\\u007f]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .slice(0, 24) || 'Игрок';\n}\n\nfunction json(res, status, payload, extraHeaders) {\n  if (res.finished || res.destroyed) return;\n  const body = JSON.stringify(payload);\n  res.writeHead(status, Object.assign({\n    'Content-Type': 'application/json; charset=utf-8',\n    'Content-Length': Buffer.byteLength(body),\n    'Cache-Control': 'no-store',\n    'X-Content-Type-Options': 'nosniff',\n    'Referrer-Policy': 'no-referrer'\n  }, extraHeaders || {}));\n  res.end(body);\n}\n\nfunction plain(res, status, message) {\n  if (res.finished || res.destroyed) return;\n  res.writeHead(status, {\n    'Content-Type': 'text/plain; charset=utf-8',\n    'Content-Length': Buffer.byteLength(message),\n    'Cache-Control': 'no-store',\n    'X-Content-Type-Options': 'nosniff'\n  });\n  res.end(message);\n}\n\nfunction applyCors(req, res) {\n  const origin = req.headers.origin;\n  // The game is intended for a private LAN. File:// clients send Origin: null.\n  // CORS is only necessary for these direct-file/alternate-origin setups.\n  if (!origin || origin === 'null' || /^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/i.test(origin) || origin === 'http://' + (req.headers.host || '')) {\n    res.setHeader('Access-Control-Allow-Origin', origin || '*');\n  } else {\n    // The host page is normally served from this same server; LAN users should open\n    // the printed host URL, not a separate copy of the HTML file.\n    res.setHeader('Access-Control-Allow-Origin', origin);\n  }\n  res.setHeader('Vary', 'Origin');\n  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');\n  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Room-Code');\n  res.setHeader('Access-Control-Max-Age', '600');\n}\n\nfunction readJsonBody(req) {\n  return new Promise(function (resolve, reject) {\n    const chunks = [];\n    let size = 0;\n    let tooLarge = false;\n    req.on('data', function (chunk) {\n      size += chunk.length;\n      if (size > MAX_BODY_BYTES) {\n        tooLarge = true;\n        chunks.length = 0;\n        return;\n      }\n      if (!tooLarge) chunks.push(chunk);\n    });\n    req.on('end', function () {\n      if (tooLarge) return reject(Object.assign(new Error('Тело запроса превышает 32 МБ'), { statusCode: 413 }));\n      if (!chunks.length) return resolve({});\n      let parsed;\n      try { parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')); }\n      catch (_) { return reject(Object.assign(new Error('Некорректный JSON'), { statusCode: 400 })); }\n      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {\n        return reject(Object.assign(new Error('Ожидался JSON-объект'), { statusCode: 400 }));\n      }\n      resolve(parsed);\n    });\n    req.on('error', reject);\n  });\n}\n\nfunction defaultRoomSettings() {\n  return {\n    mode: 'shared', mapSize: 'medium', terrain: 'normal', difficulty: 'normal',\n    fog: true, dayNight: true, resourceDensity: 2, goblinSpawnLevel: 1,\n    researchSpeedLevel: 1, constructionSpeedLevel: 1, seed: null, creative: false\n  };\n}\n\nfunction cleanRoomSettings(value) {\n  value = value && typeof value === 'object' ? value : {};\n  var sizes = ['superTiny','tiny','small','medium','large','huge','superHuge','elongated'];\n  var terrains = ['normal','mountain','island','flat'];\n  var difficulties = ['easy','normal','hard'];\n  var modes = ['shared','separate','pvp','goblinBases'];\n  var seed = value.seed;\n  if (seed === '' || seed === undefined || seed === null || !Number.isSafeInteger(Number(seed))) seed = null;\n  else seed = Number(seed);\n  function intIn(v, min, max, fallback) {\n    v = Number(v);\n    return Number.isFinite(v) ? Math.max(min, Math.min(max, Math.floor(v))) : fallback;\n  }\n  return {\n    mode: modes.indexOf(value.mode) >= 0 ? value.mode : 'shared',\n    mapSize: sizes.indexOf(value.mapSize) >= 0 ? value.mapSize : 'medium',\n    terrain: terrains.indexOf(value.terrain) >= 0 ? value.terrain : 'normal',\n    difficulty: difficulties.indexOf(value.difficulty) >= 0 ? value.difficulty : 'normal',\n    fog: value.fog !== false,\n    dayNight: value.dayNight !== false,\n    resourceDensity: intIn(value.resourceDensity, 0, 3, 2),\n    goblinSpawnLevel: intIn(value.goblinSpawnLevel, 0, 3, 1),\n    researchSpeedLevel: intIn(value.researchSpeedLevel, 0, 2, 1),\n    constructionSpeedLevel: intIn(value.constructionSpeedLevel, 0, 2, 1),\n    seed: seed, creative: value.creative === true\n  };\n}\n\nfunction clearRoom() {\n\n  players.clear();\n  proposals.clear();\n  hostId = null;\n  roomCode = null;\n  hostLastSeen = 0;\n  sharedState = null;\n  revision = 0;\n  started = false;\n  roomSettings = defaultRoomSettings();\n}\n\nfunction prunePlayers() {\n  const now = Date.now();\n  if (hostId && now - hostLastSeen > HOST_TIMEOUT_MS) {\n    console.log('Хост не отвечает — комната закрыта.');\n    clearRoom();\n    return;\n  }\n  players.forEach(function (player, id) {\n    if (id !== hostId && now - player.lastSeen > GUEST_TIMEOUT_MS) {\n      players.delete(id);\n      proposals.delete(id);\n    }\n  });\n}\n\nfunction listPlayers() {\n  prunePlayers();\n  const out = [];\n  players.forEach(function (p) { out.push({ id: p.id, name: p.name, role: p.role, team: p.team || 'green' }); });\n  return out;\n}\n\nfunction createPlayer(name, role) {\n  const counts = {green:0,blue:0,yellow:0,pink:0};\n  players.forEach(function (p) { if (counts[p.team] !== undefined) counts[p.team]++; });\n  const team = VALID_TEAMS.slice().sort(function(a,b){return counts[a]-counts[b];})[0] || 'green';\n  const player = { id: makeId(), name: cleanName(name), role: role, team: team, lastSeen: Date.now() };\n  players.set(player.id, player);\n  return player;\n}\n\nfunction heartbeat(id) {\n  const player = players.get(String(id || ''));\n  if (!player) return false;\n  player.lastSeen = Date.now();\n  if (player.id === hostId) hostLastSeen = player.lastSeen;\n  return true;\n}\n\nfunction suppliedRoomCode(req, body, url) {\n  const headerCode = req.headers['x-room-code'];\n  return String(headerCode || (body && body.roomCode) || (url && url.searchParams.get('roomCode')) || '')\n    .replace(/[^a-f0-9]/gi, '').toUpperCase().slice(0, 6);\n}\n\nfunction roomAuthorized(req, body, url) {\n  const supplied = suppliedRoomCode(req, body, url);\n  return !!roomCode && supplied === roomCode;\n}\n\nfunction isValidSnapshot(save) {\n  if (!save || typeof save !== 'object' || Array.isArray(save)) return false;\n  if (save.version !== 13 || !Array.isArray(save.terrain) || !save.terrain.length || save.terrain.length > 2000) return false;\n  const rowLength = Array.isArray(save.terrain[0]) ? save.terrain[0].length : 0;\n  if (!rowLength || rowLength > 2000) return false;\n  if (!save.terrain.every(function (row) { return Array.isArray(row) && row.length === rowLength; })) return false;\n  if (!save.res || typeof save.res !== 'object' || !Array.isArray(save.buildings) || !Array.isArray(save.units)) return false;\n  if (save.buildings.length > 50000 || save.units.length > 50000) return false;\n  return true;\n}\n\nfunction allowRate(req) {\n  const ip = (req.socket && req.socket.remoteAddress) || 'unknown';\n  const now = Date.now();\n  let record = rateWindows.get(ip);\n  if (!record || now - record.start > 60000) record = { start: now, count: 0 };\n  record.count += 1;\n  rateWindows.set(ip, record);\n  if (rateWindows.size > 500) {\n    rateWindows.forEach(function (entry, key) { if (now - entry.start > 120000) rateWindows.delete(key); });\n  }\n  return record.count <= MAX_REQUESTS_PER_MINUTE;\n}\n\nfunction findGameFile() {\n  var names;\n  try { names = fs.readdirSync(__dirname); } catch (_) { return null; }\n  var files = names.filter(function (name) {\n    if (!/\\.html?$/i.test(name) || name.charAt(0) === '.') return false;\n    try { return fs.statSync(path.join(__dirname, name)).isFile(); }\n    catch (_) { return false; }\n  });\n  if (!files.length) return null;\n\n  function rank(name) {\n    // Prefer the newer stabilization build if v47 is still present in the folder.\n    if (/^поселение.*v?49.*\\.html?$/i.test(name)) return 230;\n    if (/^settlement[ _-]*v?49.*\\.html?$/i.test(name)) return 230;\n    if (/v[ _-]*49/i.test(name) || /поселение.*49/i.test(name)) return 220;\n    if (/^поселение.*v?48.*\\.html?$/i.test(name)) return 190;\n    if (/^settlement[ _-]*v?48.*\\.html?$/i.test(name)) return 190;\n    if (/v[ _-]*48/i.test(name) || /поселение.*48/i.test(name)) return 175;\n    if (/^Settlement_v47(?:_STABLE)?(?:_20261115)?\\.html?$/i.test(name)) return 180;\n    if (/^Settlement_v46_JOINFIX(?:_20261115)?\\.html?$/i.test(name)) return 160;\n    if (/^поселение\\s*v?47(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 170;\n    if (/^поселение\\s*v?46(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 140;\n    if (/^поселение.*v?47.*\\.html?$/i.test(name)) return 165;\n    if (/^поселение.*v?46.*\\.html?$/i.test(name)) return 135;\n    if (/^settlement[ _-]*v?47.*\\.html?$/i.test(name)) return 160;\n    if (/^settlement[ _-]*v?46.*\\.html?$/i.test(name)) return 130;\n    if (/v[ _-]*47/i.test(name) || /поселение.*47/i.test(name)) return 150;\n    if (/v[ _-]*46/i.test(name) || /поселение.*46/i.test(name)) return 120;\n    if (/^поселение\\s*v?45(?:\\s*\\(\\d+\\))?\\.html?$/i.test(name)) return 110;\n    if (/^поселение.*v?45.*\\.html?$/i.test(name)) return 105;\n    if (/^settlement[ _-]*v?45.*\\.html?$/i.test(name)) return 100;\n    if (/v[ _-]*45/i.test(name) || /поселение.*45/i.test(name)) return 90;\n    if (/^поселение/i.test(name)) return 70;\n    if (/^settlement/i.test(name)) return 60;\n    return 10;\n  }\n\n  files.sort(function (a, b) {\n    var diff = rank(b) - rank(a);\n    if (diff) return diff;\n    // If there are several unrelated HTML files, use the most recently updated one.\n    var at = 0, bt = 0;\n    try { at = fs.statSync(path.join(__dirname, a)).mtime.getTime(); } catch (_) {}\n    try { bt = fs.statSync(path.join(__dirname, b)).mtime.getTime(); } catch (_) {}\n    return bt - at || a.localeCompare(b);\n  });\n  return path.join(__dirname, files[0]);\n}\n\nfunction serveGame(req, res) {\n  var gameFile = findGameFile();\n  if (!gameFile) {\n    return plain(res, 404, 'В папке с server.js не найден HTML-файл игры. Скачайте «Поселение v48 — стабилизация.html» и положите его в эту же папку. Имя файла может отличаться — важно, чтобы рядом с server.js был HTML игры.');\n  }\n  var stream = fs.createReadStream(gameFile);\n  res.writeHead(200, {\n    'Content-Type': 'text/html; charset=utf-8',\n    'Cache-Control': 'no-cache',\n    'X-Content-Type-Options': 'nosniff'\n  });\n  if (req.method === 'HEAD') return res.end();\n  stream.on('error', function () {\n    if (!res.headersSent) plain(res, 500, 'Не удалось прочитать HTML игры. Проверьте права доступа к файлу.');\n    else if (!res.finished) res.destroy();\n  });\n  stream.pipe(res);\n}\n\nasync function handleRequest(req, res) {\n  applyCors(req, res);\n  if (req.method === 'OPTIONS') {\n    res.writeHead(204, { 'Content-Length': '0' });\n    return res.end();\n  }\n  if (!allowRate(req)) return json(res, 429, { ok: false, error: 'Слишком много запросов. Подождите минуту.' });\n\n  let url;\n  try { url = new URL(req.url, 'http://' + (req.headers.host || 'localhost')); }\n  catch (_) { return json(res, 400, { ok: false, error: 'Некорректный URL' }); }\n  let pathname = url.pathname;\n  try { pathname = decodeURIComponent(pathname); }\n  catch (_) { return json(res, 400, { ok: false, error: 'Некорректный путь' }); }\n\n  if ((req.method === 'GET' || req.method === 'HEAD') && (pathname === '/' || pathname === '/index.html' || /\\.html?$/i.test(pathname))) {\n    return serveGame(req, res);\n  }\n\n  if (req.method === 'GET' && pathname === '/api/status') {\n    return json(res, 200, {\n      ok: true, protocol: PROTOCOL_VERSION, hostOnline: !!hostId, started: started,\n      revision: revision, maxPlayers: MAX_PLAYERS, players: listPlayers(), settings: roomSettings\n    });\n  }\n\n  if (req.method === 'GET' && pathname === '/api/state') {\n    prunePlayers();\n    const id = String(url.searchParams.get('id') || '');\n    if (!roomAuthorized(req, null, url)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!heartbeat(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена. Подключитесь к комнате заново.' });\n    const since = Math.max(0, Number(url.searchParams.get('since') || 0));\n    return json(res, 200, {\n      ok: true, hostOnline: !!hostId, started: started, revision: revision,\n      state: sharedState && revision > since ? sharedState : null,\n      players: listPlayers(), hostId: hostId, settings: roomSettings\n    });\n  }\n\n  if (req.method === 'GET' && pathname === '/api/pending') {\n    prunePlayers();\n    const id = String(url.searchParams.get('id') || '');\n    if (!roomAuthorized(req, null, url)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может получать действия' });\n    heartbeat(id);\n    const pending = [];\n    proposals.forEach(function (p) { pending.push(p); });\n    pending.sort(function (a, b) { return a.sentAt - b.sentAt; });\n    return json(res, 200, { ok: true, proposals: pending, players: listPlayers() });\n  }\n\n  if (req.method !== 'POST') return json(res, 404, { ok: false, error: 'Маршрут не найден' });\n\n  let body;\n  try { body = await readJsonBody(req); }\n  catch (err) { return json(res, err.statusCode || 400, { ok: false, error: err.message || 'Ошибка чтения запроса' }); }\n\n  if (pathname === '/api/host') {\n    prunePlayers();\n    if (hostId) return json(res, 409, { ok: false, error: 'Комната уже имеет активного хоста. Подключитесь к нему или дождитесь завершения сессии.' });\n    clearRoom();\n    roomCode = makeRoomCode();\n    roomSettings = cleanRoomSettings(body.settings);\n    const p = createPlayer(body.name, 'host');\n    hostId = p.id;\n    hostLastSeen = Date.now();\n    console.log('Создана комната ' + roomCode + ' (хост: ' + p.name + ')');\n    return json(res, 200, { ok: true, id: p.id, role: 'host', roomCode: roomCode, revision: revision, players: listPlayers(), settings: roomSettings, started: started });\n  }\n\n  if (pathname === '/api/join') {\n    prunePlayers();\n    if (!hostId) return json(res, 409, { ok: false, error: 'Хост ещё не создал комнату. Попросите хоста нажать «Хостить».' });\n    if (!roomAuthorized(req, body, url)) return json(res, 403, { ok: false, error: 'Код комнаты неверный. Попросите у хоста актуальный код.' });\n    if (players.size >= MAX_PLAYERS) return json(res, 409, { ok: false, error: 'Комната заполнена (максимум ' + MAX_PLAYERS + ' игроков).' });\n    const p = createPlayer(body.name, 'guest');\n    console.log(p.name + ' подключился к комнате ' + roomCode);\n    return json(res, 200, { ok: true, id: p.id, role: 'guest', revision: revision, state: sharedState, started: started, settings: roomSettings, players: listPlayers() });\n  }\n\n  if (pathname === '/api/heartbeat' || pathname === '/api/leave') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена' });\n    if (pathname === '/api/leave') {\n      const name = players.get(id).name;\n      if (id === hostId) {\n        console.log('Хост завершил комнату ' + roomCode);\n        clearRoom();\n      } else {\n        players.delete(id);\n        proposals.delete(id);\n        console.log(name + ' отключился');\n      }\n      return json(res, 200, { ok: true });\n    }\n    heartbeat(id);\n    return json(res, 200, { ok: true, players: listPlayers() });\n  }\n\n  if (pathname === '/api/team') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id)) return json(res, 401, { ok: false, error: 'Сессия не найдена' });\n    if (started) return json(res, 409, { ok: false, error: 'Команда фиксируется до запуска мира' });\n    const team = String(body.team || '');\n    if (VALID_TEAMS.indexOf(team) < 0) return json(res, 400, { ok: false, error: 'Неизвестная команда' });\n    players.get(id).team = team;\n    heartbeat(id);\n    return json(res, 200, { ok: true, team: team, players: listPlayers() });\n  }\n\n  if (pathname === '/api/config') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Настройки лобби может менять только хост' });\n    if (started) return json(res, 409, { ok: false, error: 'Мир уже запущен. Создайте новую комнату, чтобы изменить настройки.' });\n    roomSettings = cleanRoomSettings(body.settings);\n    heartbeat(id);\n    console.log('Обновлены настройки лобби: режим ' + roomSettings.mode + ', карта ' + roomSettings.mapSize);\n    return json(res, 200, { ok: true, settings: roomSettings, players: listPlayers() });\n  }\n\n  if (pathname === '/api/state') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может публиковать состояние' });\n    if (!isValidSnapshot(body.save)) return json(res, 400, { ok: false, error: 'Снимок мира неполный или имеет несовместимую версию. Убедитесь, что у всех участников совместимые версии HTML.' });\n    heartbeat(id);\n    sharedState = body.save;\n    started = true;\n    revision += 1;\n    return json(res, 200, { ok: true, revision: revision });\n  }\n\n  if (pathname === '/api/propose') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!players.has(id) || id === hostId) return json(res, 403, { ok: false, error: 'Игрок не подключён или пытается действовать как хост' });\n    if (!isValidSnapshot(body.save)) return json(res, 400, { ok: false, error: 'Снимок действия неполный или несовместим с текущей версией HTML' });\n    const player = players.get(id);\n    const now = Date.now();\n    if (player.lastProposalAt && now - player.lastProposalAt < 500) return json(res, 429, { ok: false, error: 'Слишком быстро. Подождите немного и повторите действие.' });\n    heartbeat(id);\n    player.lastProposalAt = now;\n    proposalSequence += 1;\n    proposals.set(id, {\n      id: id, name: player.name, seq: proposalSequence,\n      baseRevision: Math.max(0, Number(body.baseRevision || 0)),\n      save: body.save, sentAt: now\n    });\n    return json(res, 200, { ok: true, seq: proposalSequence });\n  }\n\n  if (pathname === '/api/ack') {\n    const id = String(body.id || '');\n    if (!roomAuthorized(req, body, null)) return json(res, 403, { ok: false, error: 'Неверный код комнаты' });\n    if (!hostId || id !== hostId || !players.has(id)) return json(res, 403, { ok: false, error: 'Только хост может подтверждать действия' });\n    const list = Array.isArray(body.proposals) ? body.proposals.slice(0, MAX_PLAYERS) : [];\n    list.forEach(function (item) {\n      if (!item) return;\n      const existing = proposals.get(String(item.id || ''));\n      if (existing && Number(existing.seq) === Number(item.seq)) proposals.delete(existing.id);\n    });\n    heartbeat(id);\n    return json(res, 200, { ok: true });\n  }\n\n  return json(res, 404, { ok: false, error: 'Маршрут не найден' });\n}\n\nconst server = http.createServer(function (req, res) {\n  handleRequest(req, res).catch(function (err) {\n    console.error('Ошибка обработки запроса:', err && err.stack ? err.stack : err);\n    if (!res.headersSent) json(res, 500, { ok: false, error: 'Внутренняя ошибка сервера' });\n    else if (!res.finished) res.end();\n  });\n});\n\nserver.requestTimeout = 120000;\nserver.headersTimeout = 15000;\nserver.keepAliveTimeout = 5000;\n\nserver.on('clientError', function (err, socket) {\n  if (socket && socket.writable) socket.end('HTTP/1.1 400 Bad Request\\r\\nConnection: close\\r\\n\\r\\n');\n});\n\nserver.on('error', function (err) {\n  console.error('Не удалось запустить сервер:', err.message);\n  if (err.code === 'EADDRINUSE') console.error('Порт ' + PORT + ' уже занят. Для другого порта выполните: PORT=3001 node server.js');\n  if (err.code === 'EACCES') console.error('Нет доступа к порту ' + PORT + '. Используйте порт выше 1024.');\n  process.exitCode = 1;\n});\n\nserver.listen(PORT, HOST, function () {\n  console.log('');\n  console.log('Поселение v55 — стратегическая ИИ-база гоблинов');\n  console.log('Сборка: v55-strategic-goblin-ai (сетевой протокол без изменений)');\n  console.log('Node.js: ' + process.version);\n  var nodeMajor = Number(String(process.versions.node || '0').split('.')[0]);\n  if (nodeMajor && nodeMajor < 8) console.log('ВНИМАНИЕ: эта версия сервера требует Node.js 8 или новее. Установите Node.js LTS.');\n  console.log('Рекомендация: используйте поддерживаемую LTS-версию Node.js для исправлений безопасности.');\n  console.log('Локально: http://localhost:' + PORT);\n  const interfaces = os.networkInterfaces();\n  const addresses = [];\n  Object.keys(interfaces).forEach(function (name) {\n    (interfaces[name] || []).forEach(function (item) {\n      if (item && (item.family === 'IPv4' || item.family === 4) && !item.internal) addresses.push(item.address);\n    });\n  });\n  Array.from(new Set(addresses)).forEach(function (address) { console.log('В локальной сети: http://' + address + ':' + PORT); });\n  console.log('Чтобы остановить сервер, нажмите Ctrl+C.');\n  console.log('Используйте только в доверенной сети: трафик не зашифрован.');\n  var detectedGameFile = findGameFile();\n  if (detectedGameFile) console.log('HTML игры: ' + path.basename(detectedGameFile));\n  else console.log('ВНИМАНИЕ: рядом с server.js не найден HTML-файл игры. Положите сюда HTML-файл игры или другой HTML-файл игры.');\n  console.log('');\n});\n\nfunction shutdown() {\n  if (shuttingDown) return;\n  shuttingDown = true;\n  console.log('\\nОстанавливаю сервер…');\n  clearRoom();\n  server.close(function () { process.exit(0); });\n  setTimeout(function () { process.exit(0); }, 3000).unref();\n}\nprocess.on('SIGINT', shutdown);\nprocess.on('SIGTERM', shutdown);\n";
 function mpGetName(){ const el=document.getElementById('mp-nickname'); return String(el?.value||'Игрок').replace(/[<>\u0000-\u001f]/g,'').trim().slice(0,24)||'Игрок'; }
 function mpGetBaseUrl(){
   const el=document.getElementById('mp-server-url');
